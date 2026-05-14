@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://fcm.googleapis.com https://*.firebaseapp.com https://*.firebase.com; object-src 'none'; base-uri 'self';">
+  <meta name="theme-color" content="#0f0f12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Abill">
+  <meta name="description" content="Aprende con Bill — tarjetas de memoria con repetición espaciada">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Abill</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- PANTALLA: INICIO -->
+  <div id="screen-home" class="screen active">
+    <div class="safe-top"></div>
+    <div class="screen-content">
+      <div class="home-header">
+        <div class="logo">
+          <div class="bill-avatar">B</div>
+          <span class="app-name">a<span class="accent">bill</span></span>
+        </div>
+        <button class="icon-btn" onclick="showScreen('screen-settings')" aria-label="Configuración">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+
+      <div class="greeting-block">
+        <p class="greeting" id="greeting-text">Hola 👋</p>
+        <h1 class="today-title" id="today-title">Cargando...</h1>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Para hoy</div>
+          <div class="stat-value" id="stat-due">0</div>
+          <div class="stat-sub">tarjetas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Racha</div>
+          <div class="stat-value streak" id="stat-streak">0🔥</div>
+          <div class="stat-sub">días</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <span class="section-title">Mis mazos</span>
+        <button class="text-btn" onclick="showScreen('screen-new-deck')">+ Nuevo</button>
+      </div>
+
+      <div id="decks-list" class="decks-list">
+        <div class="empty-state" id="empty-decks">
+          <p>Aún no tienes mazos.<br>Crea uno para empezar.</p>
+          <button class="btn-primary" onclick="showScreen('screen-new-deck')">Crear primer mazo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="tab active" onclick="showScreen('screen-home')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button class="tab" onclick="showScreen('screen-decks')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        <span>Mazos</span>
+      </button>
+      <button class="tab tab-add" onclick="showScreen('screen-new-card')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="tab" onclick="showScreen('screen-stats')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab" onclick="showScreen('screen-settings')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Config</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: MAZOS -->
+  <div id="screen-decks" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content">
+      <div class="nav-header">
+        <h2 class="nav-title">Mis mazos</h2>
+        <button class="icon-btn" onclick="showScreen('screen-new-deck')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div id="decks-list-full" class="decks-list"></div>
+    </div>
+    <div class="bottom-bar">
+      <button class="tab" onclick="showScreen('screen-home')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button class="tab active" onclick="showScreen('screen-decks')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        <span>Mazos</span>
+      </button>
+      <button class="tab tab-add" onclick="showScreen('screen-new-card')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="tab" onclick="showScreen('screen-stats')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab" onclick="showScreen('screen-settings')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Config</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: NUEVA TARJETA -->
+  <div id="screen-new-card" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content">
+      <div class="nav-header">
+        <button class="back-btn" onclick="showScreen('screen-home')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Volver
+        </button>
+        <h2 class="nav-title">Nueva tarjeta</h2>
+        <button class="text-btn accent-btn" onclick="saveCard()">Guardar</button>
+      </div>
+
+      <div class="form-block">
+        <label class="field-label">Mazo</label>
+        <div class="mazo-pills" id="mazo-pills-new"></div>
+      </div>
+
+      <div class="form-block">
+        <label class="field-label" for="card-question">Pregunta</label>
+        <textarea id="card-question" class="field-input" placeholder="¿Qué quieres recordar?" rows="3"></textarea>
+      </div>
+
+      <div class="form-block">
+        <label class="field-label" for="card-answer">Respuesta</label>
+        <textarea id="card-answer" class="field-input" placeholder="La respuesta completa..." rows="4"></textarea>
+      </div>
+
+      <div class="form-block">
+        <label class="field-label">Dificultad inicial</label>
+        <div class="dif-row">
+          <button class="dif-btn easy active-dif" data-dif="easy" onclick="selectDif(this)">😌 Fácil</button>
+          <button class="dif-btn normal" data-dif="normal" onclick="selectDif(this)">🤔 Normal</button>
+          <button class="dif-btn hard" data-dif="hard" onclick="selectDif(this)">🔥 Difícil</button>
+        </div>
+      </div>
+
+      <button class="btn-primary full-btn" onclick="saveCard()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Guardar tarjeta
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: NUEVO MAZO -->
+  <div id="screen-new-deck" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content">
+      <div class="nav-header">
+        <button class="back-btn" onclick="goBackFromDeck()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Volver
+        </button>
+        <h2 class="nav-title">Nuevo mazo</h2>
+        <button class="text-btn accent-btn" onclick="saveDeck()">Crear</button>
+      </div>
+
+      <div class="form-block">
+        <label class="field-label" for="deck-name">Nombre</label>
+        <input type="text" id="deck-name" class="field-input" placeholder="Ej: Marketing, Historia...">
+      </div>
+
+      <div class="form-block">
+        <label class="field-label">Emoji</label>
+        <div class="emoji-grid" id="emoji-grid">
+          <button class="emoji-opt selected" data-emoji="📈" onclick="selectEmoji(this)">📈</button>
+          <button class="emoji-opt" data-emoji="🧠" onclick="selectEmoji(this)">🧠</button>
+          <button class="emoji-opt" data-emoji="📚" onclick="selectEmoji(this)">📚</button>
+          <button class="emoji-opt" data-emoji="💡" onclick="selectEmoji(this)">💡</button>
+          <button class="emoji-opt" data-emoji="🔬" onclick="selectEmoji(this)">🔬</button>
+          <button class="emoji-opt" data-emoji="🎯" onclick="selectEmoji(this)">🎯</button>
+          <button class="emoji-opt" data-emoji="🌍" onclick="selectEmoji(this)">🌍</button>
+          <button class="emoji-opt" data-emoji="💼" onclick="selectEmoji(this)">💼</button>
+          <button class="emoji-opt" data-emoji="🎨" onclick="selectEmoji(this)">🎨</button>
+          <button class="emoji-opt" data-emoji="⚡" onclick="selectEmoji(this)">⚡</button>
+          <button class="emoji-opt" data-emoji="🏆" onclick="selectEmoji(this)">🏆</button>
+          <button class="emoji-opt" data-emoji="🧩" onclick="selectEmoji(this)">🧩</button>
+        </div>
+      </div>
+
+      <div class="deck-preview" id="deck-preview">
+        <div class="deck-preview-icon">📈</div>
+        <div>
+          <div class="deck-preview-name" id="deck-preview-name">Mi mazo</div>
+          <div class="deck-preview-count">0 tarjetas</div>
+        </div>
+      </div>
+
+      <button class="btn-primary full-btn" onclick="saveDeck()">Crear mazo</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: REPASO -->
+  <div id="screen-review" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content review-content">
+      <div class="review-header">
+        <button class="back-btn" onclick="exitReview()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="review-progress"></div>
+        </div>
+        <span class="review-counter" id="review-counter">1/5</span>
+      </div>
+
+      <div class="card-wrap" id="card-wrap" onclick="revealAnswer()">
+        <div class="review-card" id="review-card">
+          <div class="card-deck-label" id="card-deck-label">MARKETING</div>
+          <div class="card-question" id="card-question-text">¿Qué es el funnel de conversión?</div>
+          <div class="card-answer-wrap" id="card-answer-wrap">
+            <div class="card-divider"></div>
+            <div class="card-answer" id="card-answer-text"></div>
+          </div>
+          <div class="tap-hint" id="tap-hint">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            Toca para ver la respuesta
+          </div>
+        </div>
+      </div>
+
+      <div class="eval-buttons" id="eval-buttons">
+        <button class="eval-btn fail" onclick="evaluateCard('fail')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          No lo sabía
+        </button>
+        <button class="eval-btn meh" onclick="evaluateCard('meh')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 15h8M9 9h.01M15 9h.01"/><circle cx="12" cy="12" r="10"/></svg>
+          Más o menos
+        </button>
+        <button class="eval-btn good" onclick="evaluateCard('good')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Lo sabía
+        </button>
+      </div>
+
+      <button class="btn-next" id="btn-next" onclick="nextCard()" style="display:none">
+        Siguiente tarjeta →
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: REPASO COMPLETADO -->
+  <div id="screen-done" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content done-content">
+      <div class="done-icon">🎉</div>
+      <h2 class="done-title">¡Sesión completada!</h2>
+      <p class="done-sub" id="done-sub">Has repasado 5 tarjetas hoy.</p>
+      <div class="done-stats" id="done-stats"></div>
+      <button class="btn-primary" onclick="showScreen('screen-home')">Volver al inicio</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: STATS -->
+  <div id="screen-stats" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content">
+      <div class="nav-header">
+        <h2 class="nav-title">Estadísticas</h2>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+    <div class="bottom-bar">
+      <button class="tab" onclick="showScreen('screen-home')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button class="tab" onclick="showScreen('screen-decks')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        <span>Mazos</span>
+      </button>
+      <button class="tab tab-add" onclick="showScreen('screen-new-card')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="tab active" onclick="showScreen('screen-stats')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab" onclick="showScreen('screen-settings')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Config</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PANTALLA: CONFIGURACIÓN -->
+  <div id="screen-settings" class="screen">
+    <div class="safe-top"></div>
+    <div class="screen-content">
+      <div class="nav-header">
+        <h2 class="nav-title">Configuración</h2>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Notificaciones</div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="setting-name">Activar recordatorios</div>
+            <div class="setting-desc">Aviso diario cuando toca repasar</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notif-enabled" onchange="saveSettings()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row" id="notif-time-row">
+          <div class="setting-info">
+            <div class="setting-name">Hora del recordatorio diario</div>
+            <div class="setting-desc">Puedes elegir cualquier hora</div>
+          </div>
+          <input type="time" id="notif-time" class="time-input" value="08:00" onchange="saveSettings()">
+        </div>
+
+        <div class="setting-note">
+          ℹ️ Para tarjetas nuevas: aviso a los 10 min, luego a las 3h, luego a las 6h (nunca entre 22:00 y 07:00, salvo que elijas tú esa franja).
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Datos</div>
+        <button class="setting-danger-btn" onclick="confirmReset()">Borrar todos los datos</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Acerca de</div>
+        <div class="about-block">
+          <div class="bill-avatar large">B</div>
+          <div>
+            <div class="about-name">Abill</div>
+            <div class="about-desc">Aprende con Bill · v1.0</div>
+            <div class="about-desc">Repetición espaciada · SM-2</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary full-btn" onclick="requestNotifPermission()">
+        Activar notificaciones push
+      </button>
+      <p class="notif-hint" id="notif-status"></p>
+    </div>
+    <div class="bottom-bar">
+      <button class="tab" onclick="showScreen('screen-home')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button class="tab" onclick="showScreen('screen-decks')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        <span>Mazos</span>
+      </button>
+      <button class="tab tab-add" onclick="showScreen('screen-new-card')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="tab" onclick="showScreen('screen-stats')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab active" onclick="showScreen('screen-settings')">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span>Config</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
