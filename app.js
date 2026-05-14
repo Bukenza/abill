@@ -76,7 +76,7 @@ function getDueCards() {
 }
 function getDueCount() { return getDueCards().length; }
 
-// ── FIREBASE MESSAGING ────────────────────────────────
+// ── FIREBASE ──────────────────────────────────────────
 function loadScript(src) {
   return new Promise((res, rej) => {
     if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
@@ -84,6 +84,41 @@ function loadScript(src) {
     s.src = src; s.onload = res; s.onerror = rej;
     document.head.appendChild(s);
   });
+}
+
+function getDeviceId() {
+  let id = localStorage.getItem('abill_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('abill_device_id', id);
+  }
+  return id;
+}
+
+const DEVICE_ID = getDeviceId();
+let firestoreDb = null;
+
+async function initFirestore() {
+  if (firestoreDb) return firestoreDb;
+  await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js');
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  firestoreDb = firebase.firestore();
+  return firestoreDb;
+}
+
+async function saveFcmToken(token) {
+  try {
+    const db = await initFirestore();
+    await db.collection('devices').doc(DEVICE_ID).set({ fcmToken: token, updatedAt: Date.now() }, { merge: true });
+  } catch (e) { console.error('Firestore token error:', e); }
+}
+
+async function saveNotifToFirestore(notifId, data) {
+  try {
+    const db = await initFirestore();
+    await db.collection('devices').doc(DEVICE_ID).collection('notifications').doc(notifId).set(data);
+  } catch (e) { console.error('Firestore notif error:', e); }
 }
 
 async function initFirebase() {
@@ -96,6 +131,7 @@ async function initFirebase() {
 
     const swReg = await navigator.serviceWorker.ready;
     const token = await messagingInstance.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
+    if (token) await saveFcmToken(token);
 
     messagingInstance.onMessage(payload => {
       const { title, body } = payload.notification || {};
@@ -114,6 +150,12 @@ function scheduleNotif(cardId, nextReview, question, deckName) {
   navigator.serviceWorker?.ready.then(reg => {
     reg.active?.postMessage({ type: 'SCHEDULE_NOTIFICATION', cardId, nextReview, question, deckName });
   });
+  saveNotifToFirestore(cardId, {
+    type: 'card', nextReview,
+    question: String(question || '').substring(0, 200),
+    deckName: String(deckName || '').substring(0, 100),
+    fired: false, updatedAt: Date.now()
+  });
 }
 
 function scheduleDailyReminder() {
@@ -121,6 +163,13 @@ function scheduleDailyReminder() {
   const [h, m] = (settings.notifTime || '08:00').split(':').map(Number);
   navigator.serviceWorker?.ready.then(reg => {
     reg.active?.postMessage({ type: 'SCHEDULE_DAILY', hour: h, minute: m });
+  });
+  const now = new Date(), next = new Date();
+  next.setHours(h, m, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  saveNotifToFirestore('daily', {
+    type: 'daily', nextReview: next.getTime(),
+    hour: h, minute: m, fired: false, updatedAt: Date.now()
   });
 }
 

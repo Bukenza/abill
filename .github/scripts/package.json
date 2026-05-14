@@ -1,0 +1,7 @@
+{
+  "name": "abill-notif-sender",
+  "version": "1.0.0",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
