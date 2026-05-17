@@ -1,0 +1,41 @@
+name: 📣 Admin — Enviar notificación personalizada
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Título de la notificación'
+        required: true
+        default: '🧠 Abill'
+      message:
+        description: 'Mensaje (cuerpo de la notificación)'
+        required: true
+        default: 'Tienes novedades en Abill. ¡Entra a verlas!'
+
+jobs:
+  send-admin-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .github/scripts/node_modules
+          key: ${{ runner.os }}-notif-${{ hashFiles('.github/scripts/package.json') }}
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: .github/scripts
+
+      - name: Enviar notificación a todos los usuarios
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          NOTIF_TITLE: ${{ inputs.title }}
+          NOTIF_MESSAGE: ${{ inputs.message }}
+        run: node admin-send.js
+        working-directory: .github/scripts
