@@ -539,6 +539,12 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       await navigator.serviceWorker.register('sw.js');
+
+      // Escucha el aviso del SW: si hay nueva versión instalada, recarga para aplicarla
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'SW_UPDATED') window.location.reload();
+      });
+
       if (Notification.permission === 'granted' && settings.notifEnabled) {
         await initFirebase();
         updatePendingNotif();

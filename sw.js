@@ -6,7 +6,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const CACHE = 'abill-v5';
+const CACHE = 'abill-v6';
 const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 // ── FIREBASE INIT ─────────────────────────────────────
@@ -44,9 +44,19 @@ self.addEventListener('install', e => {
 // ── ACTIVATE ──────────────────────────────────────────
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+    caches.keys().then(keys => {
+      const oldCaches = keys.filter(k => k !== CACHE);
+      const isUpdate  = oldCaches.length > 0; // true solo si había versión anterior
+      return Promise.all(oldCaches.map(k => caches.delete(k)))
+        .then(() => self.clients.claim())
+        .then(() => {
+          // Si es una actualización (no primera instalación), avisar a la app para recargar
+          if (isUpdate) {
+            return self.clients.matchAll({ type: 'window' })
+              .then(clients => clients.forEach(c => c.postMessage({ type: 'SW_UPDATED' })));
+          }
+        });
+    })
   );
 });
 
