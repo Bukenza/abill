@@ -63,78 +63,8 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ── LOCAL NOTIFICATION SCHEDULING ────────────────────
-// Stores scheduled notifications and fires them at the right time
-// This handles the case when the app is in background (not fully closed)
-let scheduled = [];
-
-self.addEventListener('message', e => {
-  if (!e.data || typeof e.data !== 'object') return;
-  const { type } = e.data;
-
-  if (type === 'SCHEDULE_NOTIFICATION') {
-    const { cardId, nextReview, question, deckName } = e.data;
-    if (typeof cardId !== 'string' || typeof nextReview !== 'number') return;
-    scheduled = scheduled.filter(n => n.cardId !== cardId);
-    scheduled.push({ cardId, nextReview, question: String(question || '').substring(0, 200), deckName: String(deckName || '').substring(0, 100), fired: false });
-    scheduleCheck();
-  }
-
-  if (type === 'SCHEDULE_DAILY') {
-    const { hour, minute } = e.data;
-    if (typeof hour !== 'number' || typeof minute !== 'number') return;
-    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return;
-    const now = new Date();
-    const next = new Date();
-    next.setHours(hour, minute, 0, 0);
-    if (next <= now) next.setDate(next.getDate() + 1);
-    scheduled = scheduled.filter(n => n.type !== 'daily');
-    scheduled.push({ type: 'daily', nextReview: next.getTime(), hour, minute, fired: false });
-    scheduleCheck();
-  }
-});
-
-function scheduleCheck() {
-  const next = scheduled.filter(n => !n.fired).sort((a, b) => a.nextReview - b.nextReview)[0];
-  if (!next) return;
-  const delay = Math.max(0, next.nextReview - Date.now());
-  setTimeout(() => fireScheduled(), delay + 1000);
-}
-
-async function fireScheduled() {
-  const now = Date.now();
-  for (const notif of scheduled) {
-    if (!notif.fired && notif.nextReview <= now) {
-      notif.fired = true;
-      if (notif.type === 'daily') {
-        await self.registration.showNotification('⏰ Abill — hora de repasar', {
-          body: 'Abre la app para ver tus tarjetas del día.',
-          icon: '/icons/icon-192.png',
-          tag: 'abill-daily',
-          renotify: true,
-          data: { url: '/' },
-        });
-        // Reschedule for tomorrow
-        const next = new Date(notif.nextReview);
-        next.setDate(next.getDate() + 1);
-        notif.nextReview = next.getTime();
-        notif.fired = false;
-      } else {
-        const body = notif.question
-          ? `${notif.deckName ? '[' + notif.deckName + '] ' : ''}${notif.question.substring(0, 80)}${notif.question.length > 80 ? '...' : ''}`
-          : 'Tienes una tarjeta para repasar.';
-        await self.registration.showNotification('🧠 Abill — toca repasar', {
-          body,
-          icon: '/icons/icon-192.png',
-          tag: `abill-${notif.cardId}`,
-          renotify: true,
-          data: { url: '/' },
-        });
-      }
-    }
-  }
-  scheduleCheck();
-}
+// Notificaciones gestionadas por GitHub Actions + Firestore.
+// El SW solo recibe pushes FCM via onBackgroundMessage (arriba).
 
 // ── NOTIFICATION CLICK ────────────────────────────────
 self.addEventListener('notificationclick', e => {

@@ -114,11 +114,41 @@ async function saveFcmToken(token) {
   } catch (e) { console.error('Firestore token error:', e); }
 }
 
-async function saveNotifToFirestore(notifId, data) {
+// Registra cuándo el usuario abre la app o repasa tarjetas
+// lastOpenedAt → para re-engagement (5 días sin abrir)
+// lastReviewedAt → para zona de silencio (no notificar si repasó hace <2h)
+async function updateDeviceActivity(type) {
   try {
     const db = await initFirestore();
-    await db.collection('devices').doc(DEVICE_ID).collection('notifications').doc(notifId).set(data);
-  } catch (e) { console.error('Firestore notif error:', e); }
+    const update = { updatedAt: Date.now() };
+    if (type === 'open')   update.lastOpenedAt   = Date.now();
+    if (type === 'review') update.lastReviewedAt = Date.now();
+    await db.collection('devices').doc(DEVICE_ID).set(update, { merge: true });
+  } catch (e) { console.error('Firestore activity error:', e); }
+}
+
+// Escribe el único documento de notificación pendiente por dispositivo
+async function savePendingToFirestore(nextReview, pendingCount) {
+  try {
+    const db = await initFirestore();
+    await db.collection('devices').doc(DEVICE_ID)
+      .collection('notifications').doc('pending')
+      .set({ nextReview, pendingCount, fired: false, updatedAt: Date.now() });
+  } catch (e) { console.error('Firestore pending notif error:', e); }
+}
+
+// Recalcula y actualiza el documento pending con la tarjeta más urgente
+async function updatePendingNotif() {
+  if (!settings.notifEnabled) return;
+  const now = Date.now();
+  const overdue = cards.filter(c => !c.nextReview || c.nextReview <= now);
+  const upcoming = cards.filter(c => c.nextReview && c.nextReview > now)
+    .sort((a, b) => a.nextReview - b.nextReview)[0];
+  if (overdue.length > 0) {
+    await savePendingToFirestore(now, overdue.length);
+  } else if (upcoming) {
+    await savePendingToFirestore(upcoming.nextReview, 1);
+  }
 }
 
 async function initFirebase() {
@@ -145,32 +175,14 @@ async function initFirebase() {
   }
 }
 
-function scheduleNotif(cardId, nextReview, question, deckName) {
-  if (!settings.notifEnabled) return;
-  navigator.serviceWorker?.ready.then(reg => {
-    reg.active?.postMessage({ type: 'SCHEDULE_NOTIFICATION', cardId, nextReview, question, deckName });
-  });
-  saveNotifToFirestore(cardId, {
-    type: 'card', nextReview,
-    question: String(question || '').substring(0, 200),
-    deckName: String(deckName || '').substring(0, 100),
-    fired: false, updatedAt: Date.now()
-  });
+// Mantiene la firma original para no cambiar las llamadas en saveCard() y evaluateCard()
+function scheduleNotif(_cardId, _nextReview, _question, _deckName) {
+  updatePendingNotif();
 }
 
+// Deprecated — redirige a updatePendingNotif()
 function scheduleDailyReminder() {
-  if (!settings.notifEnabled) return;
-  const [h, m] = (settings.notifTime || '08:00').split(':').map(Number);
-  navigator.serviceWorker?.ready.then(reg => {
-    reg.active?.postMessage({ type: 'SCHEDULE_DAILY', hour: h, minute: m });
-  });
-  const now = new Date(), next = new Date();
-  next.setHours(h, m, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
-  saveNotifToFirestore('daily', {
-    type: 'daily', nextReview: next.getTime(),
-    hour: h, minute: m, fired: false, updatedAt: Date.now()
-  });
+  updatePendingNotif();
 }
 
 async function requestNotifPermission() {
@@ -404,6 +416,7 @@ function evaluateCard(quality) {
   if (idx !== -1) { cards[idx] = updated; setData('abill_cards', cards); }
   const deck = decks.find(d => d.id === updated.deckId);
   scheduleNotif(updated.id, updated.nextReview, updated.question, deck?.name || '');
+  updateDeviceActivity('review');
   document.getElementById('eval-buttons').classList.remove('visible');
   document.getElementById('btn-next').style.display = 'block';
   if (reviewIndex >= reviewQueue.length - 1) document.getElementById('btn-next').textContent = 'Ver resultados →';
@@ -494,7 +507,7 @@ if ('serviceWorker' in navigator) {
       await navigator.serviceWorker.register('sw.js');
       if (Notification.permission === 'granted' && settings.notifEnabled) {
         await initFirebase();
-        scheduleDailyReminder();
+        updatePendingNotif();
       }
     } catch (e) { console.error('SW error:', e); }
   });
@@ -503,5 +516,6 @@ if ('serviceWorker' in navigator) {
 document.addEventListener('DOMContentLoaded', () => {
   renderHome();
   showScreen('screen-home');
+  updateDeviceActivity('open');
   setInterval(() => { if (currentScreen === 'screen-home') renderHome(); }, 60000);
 });
