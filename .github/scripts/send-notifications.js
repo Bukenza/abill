@@ -138,6 +138,11 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now) {
       console.log(`[SKIP] ${deviceDoc.id} — ya 2 notificaciones hoy (fase ${notifPhase})`);
       return;
     }
+    // Restricción nocturna: no enviar entre 22:00 y 07:00 hora Barcelona
+    if (madridHour < 7 || madridHour >= 22) {
+      console.log(`[SKIP] ${deviceDoc.id} — horario nocturno (${madridHour}h)`);
+      return;
+    }
     // Zona de silencio: no notificar si el usuario repasó hace < 2h
     if (device.lastReviewedAt && (now - device.lastReviewedAt) < QUIET_ZONE_MS) {
       console.log(`[SKIP] ${deviceDoc.id} — repasó hace menos de 2h`);
