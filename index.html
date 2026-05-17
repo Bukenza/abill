@@ -18,6 +18,24 @@
 </head>
 <body>
 
+  <!-- BANNER: CONSENTIMIENTO GDPR (se muestra solo la primera vez) -->
+  <div id="consent-overlay" class="consent-overlay" style="display:none">
+    <div class="consent-box">
+      <div class="consent-icon">🔒</div>
+      <h2 class="consent-title">Antes de empezar</h2>
+      <p class="consent-text">
+        Abill guarda un <strong>identificador anónimo</strong> de tu dispositivo
+        para enviarte recordatorios de repaso. No se recogen nombres, emails
+        ni el contenido de tus tarjetas.
+      </p>
+      <p class="consent-text consent-text--small">
+        Puedes revocar el acceso en cualquier momento desactivando las
+        notificaciones desde Configuración.
+      </p>
+      <button class="btn-primary full-btn" onclick="acceptConsent()">Entendido, continuar →</button>
+    </div>
+  </div>
+
   <!-- PANTALLA: INICIO -->
   <div id="screen-home" class="screen active">
     <div class="safe-top"></div>
@@ -353,7 +371,7 @@
           <div class="bill-avatar large">B</div>
           <div>
             <div class="about-name">Abill</div>
-            <div class="about-desc">Aprende con Bill · v1.4</div>
+            <div class="about-desc">Aprende con Bill · v1.5</div>
             <div class="about-desc">Repetición espaciada · SM-2</div>
           </div>
         </div>

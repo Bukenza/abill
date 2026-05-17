@@ -534,6 +534,22 @@ function confirmReset() {
   }
 }
 
+// ── CONSENTIMIENTO GDPR ───────────────────────────────
+function checkConsent() {
+  const accepted = localStorage.getItem('abill_consent');
+  if (!accepted) {
+    document.getElementById('consent-overlay').style.display = 'flex';
+  }
+}
+
+function acceptConsent() {
+  localStorage.setItem('abill_consent', '1');
+  const overlay = document.getElementById('consent-overlay');
+  overlay.style.opacity = '0';
+  overlay.style.transition = 'opacity 0.3s ease';
+  setTimeout(() => overlay.style.display = 'none', 300);
+}
+
 // ── INIT ──────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
@@ -554,6 +570,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  checkConsent();
   renderHome();
   showScreen('screen-home');
   updateDeviceActivity('open');
