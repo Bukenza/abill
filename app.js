@@ -127,28 +127,59 @@ async function updateDeviceActivity(type) {
   } catch (e) { console.error('Firestore activity error:', e); }
 }
 
-// Escribe el único documento de notificación pendiente por dispositivo
-async function savePendingToFirestore(nextReview, pendingCount) {
+// Escribe el documento de notificación pendiente por dispositivo.
+// Usa merge:true para NO sobreescribir notifCountToday/todayDate que gestiona el script.
+async function savePendingToFirestore(nextReview, pendingCount, notifPhase, dailyNotifHour) {
   try {
     const db = await initFirestore();
+    // Guardar la hora preferida del usuario en el documento del dispositivo
+    await db.collection('devices').doc(DEVICE_ID)
+      .set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
+    // Guardar la notificación pendiente (merge conserva notifCountToday y todayDate)
     await db.collection('devices').doc(DEVICE_ID)
       .collection('notifications').doc('pending')
-      .set({ nextReview, pendingCount, fired: false, updatedAt: Date.now() });
+      .set({ nextReview, pendingCount, notifPhase, fired: false, updatedAt: Date.now() }, { merge: true });
   } catch (e) { console.error('Firestore pending notif error:', e); }
+}
+
+// Guarda la preferencia de hora en Firestore aunque no haya tarjetas pendientes
+async function saveDevicePrefs() {
+  try {
+    const db = await initFirestore();
+    const dailyNotifHour = parseInt((settings.notifTime || '08:00').split(':')[0], 10);
+    await db.collection('devices').doc(DEVICE_ID)
+      .set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
+  } catch (e) { console.error('Firestore prefs error:', e); }
 }
 
 // Recalcula y actualiza el documento pending con la tarjeta más urgente
 async function updatePendingNotif() {
   if (!settings.notifEnabled) return;
   const now = Date.now();
-  const overdue = cards.filter(c => !c.nextReview || c.nextReview <= now);
+
+  const overdue  = cards.filter(c => !c.nextReview || c.nextReview <= now);
   const upcoming = cards.filter(c => c.nextReview && c.nextReview > now)
     .sort((a, b) => a.nextReview - b.nextReview)[0];
-  if (overdue.length > 0) {
-    await savePendingToFirestore(now, overdue.length);
-  } else if (upcoming) {
-    await savePendingToFirestore(upcoming.nextReview, 1);
-  }
+
+  if (overdue.length === 0 && !upcoming) return;
+
+  // Determinar la fase de notificación según el intervalo mínimo de las tarjetas relevantes
+  // Analogía: si tienes tarjetas de varios niveles, mandamos las notificaciones según la más urgente.
+  const relevant    = overdue.length > 0 ? overdue : [upcoming];
+  const minInterval = Math.min(...relevant.map(c => c.interval || 10)); // interval en minutos
+
+  // notifPhase 1: intervalo < 12h  → tarjeta nueva o reaprendiendo
+  // notifPhase 2: intervalo 12–48h → segundo día
+  // notifPhase 3: intervalo > 48h  → tercer día en adelante
+  const notifPhase = minInterval < 720 ? 1 : minInterval < 2880 ? 2 : 3;
+
+  // Hora diaria del usuario (e.g. "08:00" → 8)
+  const dailyNotifHour = parseInt((settings.notifTime || '08:00').split(':')[0], 10);
+
+  const nextReview   = overdue.length > 0 ? now : upcoming.nextReview;
+  const pendingCount = overdue.length > 0 ? overdue.length : 1;
+
+  await savePendingToFirestore(nextReview, pendingCount, notifPhase, dailyNotifHour);
 }
 
 async function initFirebase() {
@@ -479,7 +510,10 @@ function saveSettings() {
   settings.notifEnabled = document.getElementById('notif-enabled').checked;
   settings.notifTime = document.getElementById('notif-time').value;
   setData('abill_settings', settings);
-  if (settings.notifEnabled) scheduleDailyReminder();
+  if (settings.notifEnabled) {
+    scheduleDailyReminder(); // recalcula pending si hay tarjetas
+    saveDevicePrefs();       // guarda la hora aunque no haya tarjetas pendientes
+  }
 }
 
 function updateNotifStatus() {

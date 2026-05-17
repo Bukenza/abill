@@ -2,18 +2,30 @@
 // ABILL — GitHub Action: Send Push Notifications
 // ───────────────────────────────────────────────────────────────────────
 //
-// CUÁNDO CORRE: 3 veces al día (8:00 / 13:00 / 20:00 hora española)
+// CUÁNDO CORRE: cada hora en punto (UTC)
 //
-// LÓGICA DE NOTIFICACIONES REGULARES:
-//   Antes de enviar, comprueba:
-//   1. ¿Hay tarjetas pendientes? (nextReview <= ahora)
-//   2. ¿El usuario repasó hace menos de 2 horas? → no enviar (zona silencio)
-//   3. ¿Ya se envió una notificación hace menos de 2 horas? → no enviar
-//   Si todo OK → envía 1 notificación y programa snooze 2h
+// SISTEMA DE 3 FASES:
 //
-// LÓGICA RE-ENGAGEMENT (los lunes a las 8:00):
-//   Si el usuario no ha abierto la app en 5+ días → notificación de recuperación
-//   Esta notificación SÍ puede solaparse con las regulares
+//   Fase 1 — intervalo < 12h (tarjeta nueva o reaprendiendo)
+//     → Máx. 2 notificaciones al día
+//     → Llegan cuando SM-2 dice que toca, respetando zona de silencio (2h)
+//
+//   Fase 2 — intervalo 12h–48h (segundo día de la tarjeta)
+//     → Máx. 2 notificaciones al día
+//     → Igual que fase 1
+//
+//   Fase 3 — intervalo > 48h (día 3 en adelante)
+//     → Exactamente 1 notificación al día
+//     → Solo a la hora configurada por el usuario (por defecto 8:00)
+//     → Nunca se repite ese día aunque la tarjeta siga sin repasar
+//
+// RESETEO DIARIO:
+//   Cada vez que el script detecta un nuevo día (hora española), resetea
+//   el contador de notificaciones del día y desbloquea el envío.
+//
+// RE-ENGAGEMENT (lunes a las 8:00 hora española):
+//   Si el usuario no ha abierto la app en 5+ días → notificación especial.
+//   Puede solaparse con la notificación regular.
 //
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -25,28 +37,49 @@ admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db        = admin.firestore();
 const messaging = admin.messaging();
 
-const QUIET_ZONE_MS       = 2 * 60 * 60 * 1000;  // 2 horas
-const REENGAGEMENT_DAYS   = 5;
-const REENGAGEMENT_MS     = REENGAGEMENT_DAYS * 24 * 60 * 60 * 1000;
+const QUIET_ZONE_MS   = 2 * 60 * 60 * 1000;           // 2 horas
+const REENGAGEMENT_MS = 5 * 24 * 60 * 60 * 1000;      // 5 días
 
+// ── UTILIDADES DE ZONA HORARIA (Europe/Madrid) ────────────────────────
+
+// Devuelve la hora local en Madrid (0-23)
+function getMadridHour(ts) {
+  return parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Madrid',
+      hour: 'numeric',
+      hour12: false,
+    }).format(new Date(ts)),
+    10
+  );
+}
+
+// Devuelve la fecha en Madrid como "YYYY-MM-DD"
+function getMadridDateStr(ts) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Madrid',
+  }).format(new Date(ts));
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────
 async function run() {
-  const now     = Date.now();
-  const nowDate = new Date();
-  const isMonday        = nowDate.getUTCDay() === 1;
-  const isMorningWindow = nowDate.getUTCHours() === 6; // 8:00 España
+  const now          = Date.now();
+  const madridHour   = getMadridHour(now);
+  const isMonday     = new Date(now).getUTCDay() === 1;
+  const isMorning8   = madridHour === 8;
 
   const devicesSnapshot = await db.collection('devices').get();
 
   for (const deviceDoc of devicesSnapshot.docs) {
-    const device = deviceDoc.data();
+    const device       = deviceDoc.data();
     const { fcmToken } = device;
     if (!fcmToken) continue;
 
-    // ── NOTIFICACIÓN REGULAR ────────────────────────────────────────
+    // ── Notificación regular ───────────────────────────────────────
     await sendRegularIfDue(deviceDoc, device, fcmToken, now);
 
-    // ── NOTIFICACIÓN RE-ENGAGEMENT (solo lunes a las 8:00) ──────────
-    if (isMonday && isMorningWindow) {
+    // ── Re-engagement: solo lunes a las 8:00 hora española ─────────
+    if (isMonday && isMorning8) {
       await sendReengagementIfInactive(deviceDoc, device, fcmToken, now);
     }
   }
@@ -58,30 +91,67 @@ async function run() {
 async function sendRegularIfDue(deviceDoc, device, fcmToken, now) {
   const pendingRef = deviceDoc.ref.collection('notifications').doc('pending');
   const pendingDoc = await pendingRef.get();
-
   if (!pendingDoc.exists) return;
 
   const pending = pendingDoc.data();
 
-  // ¿Ya fue enviada?
-  if (pending.fired === true) return;
+  // ── Reseteo diario ───────────────────────────────────────────────
+  // Cada vez que cambia el día en hora española, reiniciamos el contador
+  // y desbloqueamos el envío. Analogía: como resetear el despertador cada mañana.
+  const todayStr      = getMadridDateStr(now);
+  let notifCountToday = pending.notifCountToday || 0;
+  let fired           = pending.fired === true;
 
-  // ¿Aún no toca?
+  if (pending.todayDate !== todayStr) {
+    notifCountToday = 0;
+    fired           = false;
+    await pendingRef.update({
+      notifCountToday: 0,
+      fired:           false,
+      todayDate:       todayStr,
+      updatedAt:       now,
+    });
+  }
+
+  // ── Guardias de salida rápida ────────────────────────────────────
+  if (fired) return;
   if (pending.nextReview > now) return;
 
-  // ¿El usuario repasó hace menos de 2 horas? (zona de silencio)
-  if (device.lastReviewedAt && (now - device.lastReviewedAt) < QUIET_ZONE_MS) {
-    console.log(`[SKIP] ${deviceDoc.id} — repasó hace menos de 2h`);
-    return;
+  // ── Lógica por fase ──────────────────────────────────────────────
+  const notifPhase     = pending.notifPhase || 3; // si falta, asumimos fase 3 (más restrictivo)
+  const dailyNotifHour = device.dailyNotifHour ?? 8;
+  const madridHour     = getMadridHour(now);
+
+  if (notifPhase >= 3) {
+    // ── FASE 3: 1 notificación al día, a la hora exacta del usuario ──
+    if (notifCountToday >= 1) {
+      console.log(`[SKIP] ${deviceDoc.id} — ya notificado hoy (fase 3)`);
+      return;
+    }
+    if (madridHour !== dailyNotifHour) {
+      console.log(`[SKIP] ${deviceDoc.id} — hora actual ${madridHour}h ≠ hora diaria ${dailyNotifHour}h`);
+      return;
+    }
+  } else {
+    // ── FASES 1–2: máx. 2 al día, con zona de silencio ──────────────
+    if (notifCountToday >= 2) {
+      console.log(`[SKIP] ${deviceDoc.id} — ya 2 notificaciones hoy (fase ${notifPhase})`);
+      return;
+    }
+    // Zona de silencio: no notificar si el usuario repasó hace < 2h
+    if (device.lastReviewedAt && (now - device.lastReviewedAt) < QUIET_ZONE_MS) {
+      console.log(`[SKIP] ${deviceDoc.id} — repasó hace menos de 2h`);
+      return;
+    }
+    // Zona de silencio: no notificar si ya se envió una notificación hace < 2h
+    if (pending.lastNotifiedAt && (now - pending.lastNotifiedAt) < QUIET_ZONE_MS) {
+      console.log(`[SKIP] ${deviceDoc.id} — notificación reciente (< 2h)`);
+      return;
+    }
   }
 
-  // ¿Ya se envió una notificación hace menos de 2 horas?
-  if (pending.lastNotifiedAt && (now - pending.lastNotifiedAt) < QUIET_ZONE_MS) {
-    console.log(`[SKIP] ${deviceDoc.id} — notificación reciente`);
-    return;
-  }
-
-  // Bloqueo optimista: marcar fired:true ANTES de enviar
+  // ── Bloqueo optimista: marcar fired ANTES de enviar ─────────────
+  // Así, si el script corre dos veces a la vez (raro pero posible), el segundo lo ve y para.
   await pendingRef.update({ fired: true, updatedAt: now });
 
   try {
@@ -95,19 +165,32 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now) {
       notification: { title: '🧠 Abill — hora de repasar', body: bodyText },
       webpush: {
         notification: { icon: '/icons/icon-192.png', tag: 'abill-pending', renotify: true },
-        fcmOptions: { link: 'https://abill-bb5a6.web.app' }
-      }
+        fcmOptions:   { link: 'https://abill-bb5a6.web.app' },
+      },
     });
 
-    console.log(`[OK] Regular → ${deviceDoc.id} (${count} tarjetas)`);
+    const newCount = notifCountToday + 1;
+    console.log(`[OK] Fase ${notifPhase} → ${deviceDoc.id} (notif ${newCount} hoy, ${count} tarjeta/s)`);
 
-    // Snooze: si no abre la app, renotificar en la próxima ventana (2h)
-    await pendingRef.update({
-      fired:          false,
-      nextReview:     now + QUIET_ZONE_MS,
-      lastNotifiedAt: now,
-      updatedAt:      now,
-    });
+    if (notifPhase >= 3) {
+      // Fase 3: fired se queda true. El reseteo del día siguiente lo desbloqueará.
+      await pendingRef.update({
+        notifCountToday: newCount,
+        todayDate:       todayStr,
+        lastNotifiedAt:  now,
+        updatedAt:       now,
+      });
+    } else {
+      // Fases 1–2: snooze 2h. Si no repasa, la próxima pasada del script lo renotificará.
+      await pendingRef.update({
+        fired:           false,
+        nextReview:      now + QUIET_ZONE_MS,
+        lastNotifiedAt:  now,
+        notifCountToday: newCount,
+        todayDate:       todayStr,
+        updatedAt:       now,
+      });
+    }
 
   } catch (err) {
     if (err.code === 'messaging/registration-token-not-registered') {
@@ -120,12 +203,11 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now) {
   }
 }
 
-// ── NOTIFICACIÓN RE-ENGAGEMENT ────────────────────────────────────────
+// ── RE-ENGAGEMENT ─────────────────────────────────────────────────────
 async function sendReengagementIfInactive(deviceDoc, device, fcmToken, now) {
-  const lastOpened = device.lastOpenedAt || 0;
+  const lastOpened    = device.lastOpenedAt || 0;
   const inactiveSince = now - lastOpened;
 
-  // Solo si lleva 5+ días sin abrir la app
   if (inactiveSince < REENGAGEMENT_MS) return;
 
   try {
@@ -133,16 +215,12 @@ async function sendReengagementIfInactive(deviceDoc, device, fcmToken, now) {
       token: fcmToken,
       notification: {
         title: '👋 Abill te echa de menos',
-        body:  'Estás a 5 min de seguir el camino del éxito',
+        body:  'Estás a 5 min de seguir el camino del éxito.',
       },
       webpush: {
-        notification: {
-          icon:     '/icons/icon-192.png',
-          tag:      'abill-reengagement',
-          renotify: true,
-        },
-        fcmOptions: { link: 'https://abill-bb5a6.web.app' }
-      }
+        notification: { icon: '/icons/icon-192.png', tag: 'abill-reengagement', renotify: true },
+        fcmOptions:   { link: 'https://abill-bb5a6.web.app' },
+      },
     });
 
     console.log(`[RE-ENGAGEMENT] Enviado a ${deviceDoc.id} (inactivo ${Math.round(inactiveSince / 86400000)} días)`);
