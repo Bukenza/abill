@@ -132,13 +132,23 @@ async function updateDeviceActivity(type) {
 async function savePendingToFirestore(nextReview, pendingCount, notifPhase, dailyNotifHour) {
   try {
     const db = await initFirestore();
-    // Guardar la hora preferida del usuario en el documento del dispositivo
     await db.collection('devices').doc(DEVICE_ID)
       .set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
-    // Guardar la notificación pendiente (merge conserva notifCountToday y todayDate)
-    await db.collection('devices').doc(DEVICE_ID)
-      .collection('notifications').doc('pending')
-      .set({ nextReview, pendingCount, notifPhase, fired: false, updatedAt: Date.now() }, { merge: true });
+
+    const pendingRef = db.collection('devices').doc(DEVICE_ID)
+      .collection('notifications').doc('pending');
+
+    // Nunca acortar el nextReview existente: si el backend estableció un snooze
+    // (p.ej. nextReview = now+2h) y el usuario evalúa tarjetas dentro de la app,
+    // no reseteamos ese snooze a "now" o podríamos enviar notificaciones duplicadas.
+    const existing = await pendingRef.get();
+    const existingNextReview = existing.exists ? (existing.data().nextReview || 0) : 0;
+    const effectiveNextReview = Math.max(nextReview, existingNextReview);
+
+    await pendingRef.set(
+      { nextReview: effectiveNextReview, pendingCount, notifPhase, fired: false, updatedAt: Date.now() },
+      { merge: true }
+    );
   } catch (e) { console.error('Firestore pending notif error:', e); }
 }
 
