@@ -34,6 +34,7 @@ let reviewAnswered = false;
 let sessionResults = { good: 0, meh: 0, fail: 0 };
 let selectedDeckId = null, selectedEmoji = '📈', selectedDif = 'easy', deckOrigin = 'home';
 let messagingInstance = null;
+let expandedDecks = new Set();
 
 // ── SM-2 ALGORITHM ────────────────────────────────────
 function getNextInterval(card, quality) {
@@ -110,6 +111,13 @@ async function initFirestore() {
 async function saveFcmToken(token) {
   try {
     const db = await initFirestore();
+    // Borrar documentos huérfanos con el mismo token pero distinto DEVICE_ID.
+    // Ocurre cuando el localStorage se limpia (incógnito, reinstalar PWA) y se
+    // genera un nuevo ID; el documento anterior queda activo con el mismo token
+    // y el backend envía la notificación dos veces al mismo dispositivo.
+    const stale = await db.collection('devices').where('fcmToken', '==', token).get();
+    const deletes = stale.docs.filter(d => d.id !== DEVICE_ID).map(d => d.ref.delete());
+    if (deletes.length) await Promise.all(deletes);
     await db.collection('devices').doc(DEVICE_ID).set({ fcmToken: token, updatedAt: Date.now() }, { merge: true });
   } catch (e) { console.error('Firestore token error:', e); }
 }
@@ -132,13 +140,23 @@ async function updateDeviceActivity(type) {
 async function savePendingToFirestore(nextReview, pendingCount, notifPhase, dailyNotifHour) {
   try {
     const db = await initFirestore();
-    // Guardar la hora preferida del usuario en el documento del dispositivo
     await db.collection('devices').doc(DEVICE_ID)
       .set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
-    // Guardar la notificación pendiente (merge conserva notifCountToday y todayDate)
-    await db.collection('devices').doc(DEVICE_ID)
-      .collection('notifications').doc('pending')
-      .set({ nextReview, pendingCount, notifPhase, fired: false, updatedAt: Date.now() }, { merge: true });
+
+    const pendingRef = db.collection('devices').doc(DEVICE_ID)
+      .collection('notifications').doc('pending');
+
+    // Nunca acortar el nextReview existente: si el backend estableció un snooze
+    // (p.ej. nextReview = now+2h) y el usuario evalúa tarjetas dentro de la app,
+    // no reseteamos ese snooze a "now" o podríamos enviar notificaciones duplicadas.
+    const existing = await pendingRef.get();
+    const existingNextReview = existing.exists ? (existing.data().nextReview || 0) : 0;
+    const effectiveNextReview = Math.max(nextReview, existingNextReview);
+
+    await pendingRef.set(
+      { nextReview: effectiveNextReview, pendingCount, notifPhase, fired: false, updatedAt: Date.now() },
+      { merge: true }
+    );
   } catch (e) { console.error('Firestore pending notif error:', e); }
 }
 
@@ -310,7 +328,111 @@ function renderDecksList(containerId, withBadge) {
   });
 }
 
-function renderDecks() { renderDecksList('decks-list-full', true); }
+function renderDecks() { renderDecksExpandable('decks-list-full'); }
+
+function renderDecksExpandable(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const now = Date.now();
+
+  if (decks.length === 0) {
+    container.innerHTML = `<div class="empty-state"><p>Aún no tienes mazos.<br>Crea uno para empezar.</p><button class="btn-primary" onclick="showScreen('screen-new-deck')">Crear primer mazo</button></div>`;
+    return;
+  }
+
+  container.innerHTML = '';
+
+  decks.forEach(deck => {
+    const dc = cards.filter(c => c.deckId === deck.id);
+    const due = dc.filter(c => !c.nextReview || c.nextReview <= now).length;
+    const isOpen = expandedDecks.has(deck.id);
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'deck-expandable';
+
+    // ── Cabecera clicable ──
+    const header = document.createElement('div');
+    header.className = 'deck-expand-toggle' + (isOpen ? ' open' : '');
+
+    const emojiEl = document.createElement('div');
+    emojiEl.className = 'deck-emoji';
+    emojiEl.textContent = deck.emoji;
+
+    const info = document.createElement('div');
+    info.className = 'deck-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'deck-name';
+    nameEl.textContent = deck.name;
+    const meta = document.createElement('div');
+    meta.className = 'deck-meta';
+    meta.textContent = `${dc.length} tarjeta${dc.length !== 1 ? 's' : ''}`;
+    info.appendChild(nameEl);
+    info.appendChild(meta);
+
+    const badge = document.createElement('span');
+    badge.className = due > 0 ? 'deck-badge' : 'deck-badge done';
+    badge.textContent = due > 0 ? `${due} hoy` : 'Al día ✓';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'deck-chevron';
+    chevron.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+    header.appendChild(emojiEl);
+    header.appendChild(info);
+    header.appendChild(badge);
+    header.appendChild(chevron);
+
+    header.addEventListener('click', () => {
+      if (expandedDecks.has(deck.id)) expandedDecks.delete(deck.id);
+      else expandedDecks.add(deck.id);
+      renderDecks();
+    });
+
+    // ── Lista de tarjetas ──
+    const itemsList = document.createElement('div');
+    itemsList.className = 'deck-items-list' + (isOpen ? '' : ' hidden');
+
+    if (dc.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'deck-items-empty';
+      empty.textContent = 'Este mazo no tiene tarjetas aún.';
+      itemsList.appendChild(empty);
+    } else {
+      dc.forEach(card => {
+        const row = document.createElement('div');
+        row.className = 'deck-item-row';
+
+        const questionEl = document.createElement('span');
+        questionEl.className = 'deck-item-question';
+        questionEl.textContent = card.question;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-card-delete';
+        delBtn.title = 'Borrar tarjeta';
+        delBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+        delBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          deleteCard(card.id);
+        });
+
+        row.appendChild(questionEl);
+        row.appendChild(delBtn);
+        itemsList.appendChild(row);
+      });
+    }
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(itemsList);
+    container.appendChild(wrapper);
+  });
+}
+
+function deleteCard(cardId) {
+  cards = cards.filter(c => c.id !== cardId);
+  setData('abill_cards', cards);
+  updatePendingNotif();
+  renderDecks();
+}
 
 // ── NEW CARD ──────────────────────────────────────────
 function renderNewCardForm() {

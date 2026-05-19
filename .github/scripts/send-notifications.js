@@ -52,10 +52,20 @@ async function run() {
 
   const devicesSnapshot = await db.collection('devices').get();
 
+  // Un mismo token puede aparecer en varios documentos (p.ej. si el localStorage
+  // se limpió y se generó un nuevo DEVICE_ID, el documento anterior queda huérfano
+  // con el mismo token). Enviamos solo una vez por token para evitar duplicados.
+  const sentTokens = new Set();
+
   for (const deviceDoc of devicesSnapshot.docs) {
     const device       = deviceDoc.data();
     const { fcmToken } = device;
     if (!fcmToken) continue;
+    if (sentTokens.has(fcmToken)) {
+      console.log(`[SKIP] Token duplicado en ${deviceDoc.id}, ya procesado`);
+      continue;
+    }
+    sentTokens.add(fcmToken);
 
     // ── Notificación regular ───────────────────────────────────────
     await sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour);
@@ -76,9 +86,6 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour) {
   if (!pendingDoc.exists) return;
 
   const pending = pendingDoc.data();
-
-  // Bloqueo concurrente: ya se está procesando este dispositivo
-  if (pending.fired === true) return;
 
   // ¿Aún no toca según el algoritmo?
   if (pending.nextReview > now) return;
@@ -112,8 +119,27 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour) {
     }
   }
 
-  // ── Bloqueo optimista: marcar fired ANTES de enviar ─────────────
-  await pendingRef.update({ fired: true, updatedAt: now });
+  // ── Bloqueo atómico: transacción que lee y reserva fired en un solo paso ──
+  // El read-then-write previo no era atómico: si dos ejecuciones del workflow
+  // arrancaban simultáneamente, ambas leían fired:false y ambas enviaban.
+  // Con la transacción, solo una escritura gana; la otra ve fired:true y aborta.
+  let claimed = false;
+  try {
+    await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(pendingRef);
+      if (!fresh.exists || fresh.data().fired === true) return;
+      tx.update(pendingRef, { fired: true, updatedAt: now });
+      claimed = true;
+    });
+  } catch (err) {
+    console.error(`[TXN ERROR] ${deviceDoc.id}: ${err.message}`);
+    return;
+  }
+
+  if (!claimed) {
+    console.log(`[SKIP] ${deviceDoc.id} — ya reclamado por otra ejecución concurrente`);
+    return;
+  }
 
   try {
     const count    = pending.pendingCount || 0;

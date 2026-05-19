@@ -5,6 +5,10 @@ on:
     - cron: '0 * * * *'   # cada hora en punto (UTC) → permite enviar a la hora exacta del usuario
   workflow_dispatch:
 
+concurrency:
+  group: send-notifications
+  cancel-in-progress: false   # no cancelar si ya hay un envío en curso; la siguiente ejecución espera
+
 jobs:
   send-notifications:
     runs-on: ubuntu-latest
