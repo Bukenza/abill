@@ -52,10 +52,20 @@ async function run() {
 
   const devicesSnapshot = await db.collection('devices').get();
 
+  // Un mismo token puede aparecer en varios documentos (p.ej. si el localStorage
+  // se limpió y se generó un nuevo DEVICE_ID, el documento anterior queda huérfano
+  // con el mismo token). Enviamos solo una vez por token para evitar duplicados.
+  const sentTokens = new Set();
+
   for (const deviceDoc of devicesSnapshot.docs) {
     const device       = deviceDoc.data();
     const { fcmToken } = device;
     if (!fcmToken) continue;
+    if (sentTokens.has(fcmToken)) {
+      console.log(`[SKIP] Token duplicado en ${deviceDoc.id}, ya procesado`);
+      continue;
+    }
+    sentTokens.add(fcmToken);
 
     // ── Notificación regular ───────────────────────────────────────
     await sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour);

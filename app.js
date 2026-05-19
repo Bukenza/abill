@@ -110,6 +110,13 @@ async function initFirestore() {
 async function saveFcmToken(token) {
   try {
     const db = await initFirestore();
+    // Borrar documentos huérfanos con el mismo token pero distinto DEVICE_ID.
+    // Ocurre cuando el localStorage se limpia (incógnito, reinstalar PWA) y se
+    // genera un nuevo ID; el documento anterior queda activo con el mismo token
+    // y el backend envía la notificación dos veces al mismo dispositivo.
+    const stale = await db.collection('devices').where('fcmToken', '==', token).get();
+    const deletes = stale.docs.filter(d => d.id !== DEVICE_ID).map(d => d.ref.delete());
+    if (deletes.length) await Promise.all(deletes);
     await db.collection('devices').doc(DEVICE_ID).set({ fcmToken: token, updatedAt: Date.now() }, { merge: true });
   } catch (e) { console.error('Firestore token error:', e); }
 }
