@@ -77,9 +77,6 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour) {
 
   const pending = pendingDoc.data();
 
-  // Bloqueo concurrente: ya se está procesando este dispositivo
-  if (pending.fired === true) return;
-
   // ¿Aún no toca según el algoritmo?
   if (pending.nextReview > now) return;
 
@@ -112,8 +109,27 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour) {
     }
   }
 
-  // ── Bloqueo optimista: marcar fired ANTES de enviar ─────────────
-  await pendingRef.update({ fired: true, updatedAt: now });
+  // ── Bloqueo atómico: transacción que lee y reserva fired en un solo paso ──
+  // El read-then-write previo no era atómico: si dos ejecuciones del workflow
+  // arrancaban simultáneamente, ambas leían fired:false y ambas enviaban.
+  // Con la transacción, solo una escritura gana; la otra ve fired:true y aborta.
+  let claimed = false;
+  try {
+    await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(pendingRef);
+      if (!fresh.exists || fresh.data().fired === true) return;
+      tx.update(pendingRef, { fired: true, updatedAt: now });
+      claimed = true;
+    });
+  } catch (err) {
+    console.error(`[TXN ERROR] ${deviceDoc.id}: ${err.message}`);
+    return;
+  }
+
+  if (!claimed) {
+    console.log(`[SKIP] ${deviceDoc.id} — ya reclamado por otra ejecución concurrente`);
+    return;
+  }
 
   try {
     const count    = pending.pendingCount || 0;
