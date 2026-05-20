@@ -21,6 +21,9 @@ function getData(key, fallback) {
 }
 function setData(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  if (['abill_cards', 'abill_decks', 'abill_settings', 'abill_stats'].includes(key)) {
+    syncUserData();
+  }
 }
 
 // ── STATE ─────────────────────────────────────────────
@@ -35,6 +38,7 @@ let sessionResults = { good: 0, meh: 0, fail: 0 };
 let selectedDeckId = null, selectedEmoji = '📈', selectedDif = 'easy', deckOrigin = 'home';
 let messagingInstance = null;
 let expandedDecks = new Set();
+let currentUser = null;
 
 // ── SM-2 ALGORITHM ────────────────────────────────────
 function getNextInterval(card, quality) {
@@ -108,10 +112,64 @@ async function initFirestore() {
   return firestoreDb;
 }
 
-async function saveFcmToken(token) {
+// ── AUTH ──────────────────────────────────────────────
+async function initAuth() {
+  await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js');
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  try { await firebase.auth().getRedirectResult(); } catch {}
+}
+
+async function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      await firebase.auth().signInWithRedirect(provider);
+    } else {
+      await firebase.auth().signInWithPopup(provider);
+    }
+  } catch (e) { console.error('Login error:', e); }
+}
+
+async function signOut() {
+  if (confirm('¿Cerrar sesión?')) {
+    await firebase.auth().signOut();
+    window.location.reload();
+  }
+}
+
+async function loadUserData() {
+  if (!currentUser) return;
+  const db = await initFirestore();
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  if (doc.exists) {
+    const d = doc.data();
+    if (d.cards)    { cards    = d.cards;                              localStorage.setItem('abill_cards',    JSON.stringify(cards)); }
+    if (d.decks)    { decks    = d.decks;                              localStorage.setItem('abill_decks',    JSON.stringify(decks)); }
+    if (d.settings) { settings = { ...settings, ...d.settings };      localStorage.setItem('abill_settings', JSON.stringify(settings)); }
+    if (d.stats)    { stats    = { ...stats,    ...d.stats };          localStorage.setItem('abill_stats',    JSON.stringify(stats)); }
+  } else {
+    // Primera vez: migrar datos existentes de localStorage a Firestore
+    await syncUserData();
+  }
+}
+
+async function syncUserData() {
+  if (!currentUser) return;
   try {
     const db = await initFirestore();
-    await db.collection('devices').doc(DEVICE_ID).set({ fcmToken: token, updatedAt: Date.now() }, { merge: true });
+    await db.collection('users').doc(currentUser.uid)
+      .set({ cards, decks, settings, stats, updatedAt: Date.now() }, { merge: true });
+  } catch (e) { console.error('Firestore sync error:', e); }
+}
+
+async function saveFcmToken(token) {
+  if (!currentUser) return;
+  try {
+    const db = await initFirestore();
+    await db.collection('users').doc(currentUser.uid)
+      .collection('devices').doc(DEVICE_ID)
+      .set({ fcmToken: token, updatedAt: Date.now() }, { merge: true });
   } catch (e) { console.error('Firestore token error:', e); }
 }
 
@@ -119,25 +177,30 @@ async function saveFcmToken(token) {
 // lastOpenedAt → para re-engagement (5 días sin abrir)
 // lastReviewedAt → para zona de silencio (no notificar si repasó hace <2h)
 async function updateDeviceActivity(type) {
+  if (!currentUser) return;
   try {
     const db = await initFirestore();
     const update = { updatedAt: Date.now() };
     if (type === 'open')   update.lastOpenedAt   = Date.now();
     if (type === 'review') update.lastReviewedAt = Date.now();
-    await db.collection('devices').doc(DEVICE_ID).set(update, { merge: true });
+    await db.collection('users').doc(currentUser.uid)
+      .collection('devices').doc(DEVICE_ID)
+      .set(update, { merge: true });
   } catch (e) { console.error('Firestore activity error:', e); }
 }
 
 // Escribe el documento de notificación pendiente por dispositivo.
 // Usa merge:true para NO sobreescribir notifCountToday/todayDate que gestiona el script.
 async function savePendingToFirestore(nextReview, pendingCount, notifPhase, dailyNotifHour) {
+  if (!currentUser) return;
   try {
     const db = await initFirestore();
-    await db.collection('devices').doc(DEVICE_ID)
-      .set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
+    const deviceRef = db.collection('users').doc(currentUser.uid)
+      .collection('devices').doc(DEVICE_ID);
 
-    const pendingRef = db.collection('devices').doc(DEVICE_ID)
-      .collection('notifications').doc('pending');
+    await deviceRef.set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
+
+    const pendingRef = deviceRef.collection('notifications').doc('pending');
 
     // Nunca acortar el nextReview existente: si el backend estableció un snooze
     // (p.ej. nextReview = now+2h) y el usuario evalúa tarjetas dentro de la app,
@@ -155,10 +218,12 @@ async function savePendingToFirestore(nextReview, pendingCount, notifPhase, dail
 
 // Guarda la preferencia de hora en Firestore aunque no haya tarjetas pendientes
 async function saveDevicePrefs() {
+  if (!currentUser) return;
   try {
     const db = await initFirestore();
     const dailyNotifHour = parseInt((settings.notifTime || '08:00').split(':')[0], 10);
-    await db.collection('devices').doc(DEVICE_ID)
+    await db.collection('users').doc(currentUser.uid)
+      .collection('devices').doc(DEVICE_ID)
       .set({ dailyNotifHour, updatedAt: Date.now() }, { merge: true });
   } catch (e) { console.error('Firestore prefs error:', e); }
 }
@@ -242,7 +307,7 @@ async function requestNotifPermission() {
 }
 
 // ── SCREEN NAVIGATION ─────────────────────────────────
-let currentScreen = 'screen-home';
+let currentScreen = 'screen-loading';
 
 function showScreen(id) {
   const prev = document.getElementById(currentScreen);
@@ -619,6 +684,8 @@ function renderSettings() {
   document.getElementById('notif-enabled').checked = settings.notifEnabled;
   document.getElementById('notif-time').value = settings.notifTime || '08:00';
   updateNotifStatus();
+  const el = document.getElementById('user-id-display');
+  if (el && currentUser) el.textContent = currentUser.uid.substring(0, 8) + '···';
 }
 
 function saveSettings() {
@@ -641,10 +708,16 @@ function updateNotifStatus() {
 
 function confirmReset() {
   if (confirm('¿Seguro? Esta acción borrará todos tus datos y no se puede deshacer.')) {
-    localStorage.clear();
     decks = []; cards = [];
     stats = { totalReviewed: 0, totalCorrect: 0, streak: 0, lastReviewDate: null };
     settings = { notifEnabled: false, notifTime: '08:00' };
+    localStorage.clear();
+    if (currentUser) {
+      initFirestore().then(db =>
+        db.collection('users').doc(currentUser.uid)
+          .set({ cards: [], decks: [], settings, stats, updatedAt: Date.now() })
+      ).catch(() => {});
+    }
     showScreen('screen-home');
   }
 }
@@ -670,24 +743,34 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       await navigator.serviceWorker.register('sw.js');
-
-      // Escucha el aviso del SW: si hay nueva versión instalada, recarga para aplicarla
       navigator.serviceWorker.addEventListener('message', event => {
         if (event.data?.type === 'SW_UPDATED') window.location.reload();
       });
-
-      if (Notification.permission === 'granted' && settings.notifEnabled) {
-        await initFirebase();
-        updatePendingNotif();
-      }
     } catch (e) { console.error('SW error:', e); }
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  checkConsent();
-  renderHome();
-  showScreen('screen-home');
-  updateDeviceActivity('open');
-  setInterval(() => { if (currentScreen === 'screen-home') renderHome(); }, 60000);
+document.addEventListener('DOMContentLoaded', async () => {
+  await initAuth();
+
+  let homeReady = false;
+  firebase.auth().onAuthStateChanged(async (user) => {
+    currentUser = user;
+    if (user) {
+      await loadUserData();
+      checkConsent();
+      renderHome();
+      showScreen('screen-home');
+      updateDeviceActivity('open');
+      if (Notification.permission === 'granted' && settings.notifEnabled) {
+        initFirebase().then(() => updatePendingNotif());
+      }
+      if (!homeReady) {
+        homeReady = true;
+        setInterval(() => { if (currentScreen === 'screen-home') renderHome(); }, 60000);
+      }
+    } else {
+      showScreen('screen-login');
+    }
+  });
 });
