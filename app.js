@@ -111,13 +111,13 @@ async function initFirestore() {
 async function saveFcmToken(token) {
   try {
     const db = await initFirestore();
-    // Borrar documentos huérfanos con el mismo token pero distinto DEVICE_ID.
-    // Ocurre cuando el localStorage se limpia (incógnito, reinstalar PWA) y se
-    // genera un nuevo ID; el documento anterior queda activo con el mismo token
-    // y el backend envía la notificación dos veces al mismo dispositivo.
-    const stale = await db.collection('devices').where('fcmToken', '==', token).get();
-    const deletes = stale.docs.filter(d => d.id !== DEVICE_ID).map(d => d.ref.delete());
-    if (deletes.length) await Promise.all(deletes);
+    // Borrar TODOS los otros registros de dispositivo, no solo los del mismo token.
+    // En iOS, la PWA instalada en el inicio y Safari generan tokens distintos,
+    // por lo que pueden coexistir dos documentos activos y el backend notifica dos veces.
+    // Esta app es de uso personal: solo debe existir un registro activo a la vez.
+    const allDevices = await db.collection('devices').get();
+    const stale = allDevices.docs.filter(d => d.id !== DEVICE_ID);
+    if (stale.length) await Promise.all(stale.map(d => d.ref.delete()));
     await db.collection('devices').doc(DEVICE_ID).set({ fcmToken: token, updatedAt: Date.now() }, { merge: true });
   } catch (e) { console.error('Firestore token error:', e); }
 }
