@@ -122,14 +122,6 @@ async function initAuth() {
   await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
   await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js');
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  try {
-    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    const result = await firebase.auth().getRedirectResult();
-    if (result && result.user) console.log('Redirect login OK:', result.user.uid);
-  } catch (e) {
-    console.error('initAuth error:', e);
-    showLoginError('Error de autenticación: ' + (e.code || e.message));
-  }
 }
 
 async function signInWithGoogle() {
@@ -137,14 +129,12 @@ async function signInWithGoogle() {
   document.getElementById('login-error').style.display = 'none';
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      await firebase.auth().signInWithRedirect(provider);
-    } else {
-      await firebase.auth().signInWithPopup(provider);
-    }
+    await firebase.auth().signInWithPopup(provider);
   } catch (e) {
-    console.error('Login error:', e);
-    showLoginError(e.code || e.message);
+    if (e.code !== 'auth/popup-closed-by-user') {
+      console.error('Login error:', e);
+      showLoginError(e.code || e.message);
+    }
   }
 }
 
