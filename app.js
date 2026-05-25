@@ -757,7 +757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   firebase.auth().onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
-      await loadUserData();
+      try { await loadUserData(); } catch (e) { console.error('Error cargando datos:', e); }
       checkConsent();
       renderHome();
       showScreen('screen-home');
