@@ -5,7 +5,7 @@
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPAbDOyiBwP2_NNQBKiYClpdZ3_FIQ_n8",
-  authDomain: "abill-bb5a6.firebaseapp.com",
+  authDomain: "abill-bb5a6.web.app",
   projectId: "abill-bb5a6",
   storageBucket: "abill-bb5a6.firebasestorage.app",
   messagingSenderId: "618659366875",

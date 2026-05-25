@@ -6,13 +6,13 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const CACHE = 'abill-v11';
+const CACHE = 'abill-v12';
 const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 // ── FIREBASE INIT ─────────────────────────────────────
 firebase.initializeApp({
   apiKey: "AIzaSyBPAbDOyiBwP2_NNQBKiYClpdZ3_FIQ_n8",
-  authDomain: "abill-bb5a6.firebaseapp.com",
+  authDomain: "abill-bb5a6.web.app",
   projectId: "abill-bb5a6",
   storageBucket: "abill-bb5a6.firebasestorage.app",
   messagingSenderId: "618659366875",
