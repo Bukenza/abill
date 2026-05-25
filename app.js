@@ -113,14 +113,28 @@ async function initFirestore() {
 }
 
 // ── AUTH ──────────────────────────────────────────────
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
 async function initAuth() {
   await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
   await loadScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js');
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  try { await firebase.auth().getRedirectResult(); } catch {}
+  try {
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const result = await firebase.auth().getRedirectResult();
+    if (result && result.user) console.log('Redirect login OK:', result.user.uid);
+  } catch (e) {
+    console.error('initAuth error:', e);
+    showLoginError('Error de autenticación: ' + (e.code || e.message));
+  }
 }
 
 async function signInWithGoogle() {
+  showLoginError('');
+  document.getElementById('login-error').style.display = 'none';
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
     if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
@@ -128,7 +142,10 @@ async function signInWithGoogle() {
     } else {
       await firebase.auth().signInWithPopup(provider);
     }
-  } catch (e) { console.error('Login error:', e); }
+  } catch (e) {
+    console.error('Login error:', e);
+    showLoginError(e.code || e.message);
+  }
 }
 
 async function signOut() {
