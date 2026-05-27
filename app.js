@@ -113,9 +113,53 @@ async function initFirestore() {
 }
 
 // ── AUTH ──────────────────────────────────────────────
-function showLoginError(msg) {
-  const el = document.getElementById('login-error');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
+const AUTH_ERRORS = {
+  'auth/invalid-email':           'El email no es válido.',
+  'auth/missing-email':           'Escribe tu email.',
+  'auth/missing-password':        'Escribe una contraseña.',
+  'auth/user-not-found':          'No hay ninguna cuenta con ese email.',
+  'auth/wrong-password':          'Email o contraseña incorrectos.',
+  'auth/invalid-credential':      'Email o contraseña incorrectos.',
+  'auth/invalid-login-credentials': 'Email o contraseña incorrectos.',
+  'auth/email-already-in-use':    'Ya existe una cuenta con ese email.',
+  'auth/weak-password':           'La contraseña debe tener al menos 6 caracteres.',
+  'auth/too-many-requests':       'Demasiados intentos. Espera unos minutos.',
+  'auth/network-request-failed':  'Sin conexión. Revisa tu internet.',
+  'auth/operation-not-allowed':   'Este método de login no está habilitado.',
+  'auth/popup-blocked':           'El navegador ha bloqueado la ventana emergente.',
+};
+
+function showAuthMessage(type, msg) {
+  const errEl = document.getElementById('login-error');
+  const okEl  = document.getElementById('login-success');
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+  if (!msg) return;
+  const target = type === 'error' ? errEl : okEl;
+  target.textContent = msg;
+  target.style.display = 'block';
+}
+
+function showLoginError(msg) { showAuthMessage('error', msg); }
+
+function handleAuthError(e) {
+  console.error('Auth error:', e);
+  showLoginError(AUTH_ERRORS[e.code] || e.message || 'Ha ocurrido un error.');
+}
+
+function toggleAuthView(view) {
+  ['login', 'register', 'reset'].forEach(v => {
+    const el = document.getElementById('auth-view-' + v);
+    if (el) el.style.display = (v === view) ? '' : 'none';
+  });
+  showAuthMessage(null, '');
+  ['login-email', 'login-password', 'register-email', 'register-password', 'reset-email']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const sub = document.getElementById('auth-sub');
+  if (sub) sub.textContent =
+    view === 'register' ? 'Crea tu cuenta' :
+    view === 'reset'    ? 'Recupera tu acceso' :
+                          'Aprende con repetición espaciada';
 }
 
 async function initAuth() {
@@ -124,17 +168,44 @@ async function initAuth() {
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 }
 
+async function signInWithEmail() {
+  showAuthMessage(null, '');
+  const email = document.getElementById('login-email').value.trim();
+  const pwd   = document.getElementById('login-password').value;
+  if (!email || !pwd) { showLoginError('Rellena email y contraseña.'); return; }
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, pwd);
+  } catch (e) { handleAuthError(e); }
+}
+
+async function registerWithEmail() {
+  showAuthMessage(null, '');
+  const email = document.getElementById('register-email').value.trim();
+  const pwd   = document.getElementById('register-password').value;
+  if (!email || !pwd) { showLoginError('Rellena email y contraseña.'); return; }
+  if (pwd.length < 6) { showLoginError('La contraseña debe tener al menos 6 caracteres.'); return; }
+  try {
+    await firebase.auth().createUserWithEmailAndPassword(email, pwd);
+  } catch (e) { handleAuthError(e); }
+}
+
+async function resetPassword() {
+  showAuthMessage(null, '');
+  const email = document.getElementById('reset-email').value.trim();
+  if (!email) { showLoginError('Escribe tu email.'); return; }
+  try {
+    await firebase.auth().sendPasswordResetEmail(email);
+    showAuthMessage('success', '✉️ Te hemos enviado un enlace a ' + email + '. Revisa tu bandeja.');
+  } catch (e) { handleAuthError(e); }
+}
+
 async function signInWithGoogle() {
-  showLoginError('');
-  document.getElementById('login-error').style.display = 'none';
+  showAuthMessage(null, '');
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
     await firebase.auth().signInWithPopup(provider);
   } catch (e) {
-    if (e.code !== 'auth/popup-closed-by-user') {
-      console.error('Login error:', e);
-      showLoginError(e.code || e.message);
-    }
+    if (e.code !== 'auth/popup-closed-by-user') handleAuthError(e);
   }
 }
 
