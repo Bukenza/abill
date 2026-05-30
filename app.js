@@ -203,9 +203,14 @@ async function signInWithGoogle() {
   showAuthMessage(null, '');
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
-    await firebase.auth().signInWithPopup(provider);
+    // Usamos redirect en lugar de popup. En la PWA instalada en iOS el popup se
+    // abre fuera de la app (en Safari aparte) y nunca devuelve el resultado, lo que
+    // provocaba auth/internal-error. Con authDomain del mismo origen (web.app) el
+    // redirect no choca con el bloqueo de cookies de terceros de Safari (ITP).
+    // El resultado se procesa al volver de Google en getRedirectResult() (ver INIT).
+    await firebase.auth().signInWithRedirect(provider);
   } catch (e) {
-    if (e.code !== 'auth/popup-closed-by-user') handleAuthError(e);
+    handleAuthError(e);
   }
 }
 
@@ -830,6 +835,13 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initAuth();
+
+  // Procesa el resultado del login con Google por redirect (al volver de Google).
+  // Si no hubo redirect, resuelve a null sin efecto. Si falló, mostramos el error
+  // en la pantalla de login (que onAuthStateChanged mostrará al no haber usuario).
+  try {
+    await firebase.auth().getRedirectResult();
+  } catch (e) { handleAuthError(e); }
 
   let homeReady = false;
   firebase.auth().onAuthStateChanged(async (user) => {
