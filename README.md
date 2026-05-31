@@ -97,4 +97,4 @@ Para desplegar en un proyecto propio necesitas:
 
 ---
 
-Hecho con [Claude Code](https://claude.ai/claude-code) · v1.9
+Hecho con [Claude Code](https://claude.ai/claude-code) · v1.9.1

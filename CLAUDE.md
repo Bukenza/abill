@@ -68,14 +68,14 @@ de silencio 22:00–07:00.
 ### Autenticación y sincronización (Firebase, cargado de forma diferida con `loadScript`)
 - La app está **bloqueada tras login**. `onAuthStateChanged` es el verdadero punto de
   entrada: con usuario → `loadUserData()` y pantalla home; sin usuario → pantalla login.
-- **Dos métodos de login** (pantalla `screen-login`, tres vistas conmutadas con
-  `toggleAuthView`: `login` / `register` / `reset`):
-  - **Email/contraseña** (`signInWithEmail`, `registerWithEmail`, `resetPassword`): usa la
-    API REST de Identity Toolkit; no depende de popup ni de `authDomain`. Es el camino
-    fiable, también en la PWA instalada en iPhone. Requiere activar el proveedor
-    "Correo/contraseña" en Firebase Console.
-  - **Google** (`signInWithGoogle` → `signInWithPopup`): ver "Problema conocido" abajo.
-  - Errores traducidos en el mapa `AUTH_ERRORS`; se muestran con `showAuthMessage`.
+- **Login solo por email/contraseña** (pantalla `screen-login`, tres vistas conmutadas
+  con `toggleAuthView`: `login` / `register` / `reset`). `signInWithEmail`,
+  `registerWithEmail`, `resetPassword` usan la API REST de Identity Toolkit; no dependen
+  de popup ni de `authDomain`, así que funcionan en todas partes, incluida la PWA
+  instalada en iPhone. Requiere activar el proveedor "Correo/contraseña" en Firebase
+  Console. Errores traducidos en el mapa `AUTH_ERRORS`; se muestran con `showAuthMessage`.
+- **Google fue retirado en v1.9.1** — ver "Problema conocido" abajo. NO reintroducirlo
+  sin un wrapper nativo; en la PWA de iOS no hay forma fiable con el SDK web.
 - `loadUserData()` baja el doc de Firestore y sobrescribe el estado local; si no existe
   (primer login) sube el localStorage actual.
 - Layout Firestore: `users/{uid}` guarda `{ cards, decks, settings, stats }`. Los datos por
@@ -116,15 +116,21 @@ el workflow de deploy como los de notificaciones.
 
 ## Problemas conocidos (leer antes de tocar el login)
 
-1. **Login de Google roto con `auth/internal-error`.** `app.js` fuerza
-   `authDomain: "abill-bb5a6.web.app"`, pero el `authDomain` canónico del proyecto es
-   `abill-bb5a6.firebaseapp.com` (confirmado en `https://abill-bb5a6.web.app/__/firebase/init.json`).
-   Con `signInWithPopup` + `web.app` el handshake del popup falla en todas las plataformas.
-   Opciones: (a) volver `authDomain` a `firebaseapp.com` (el popup funciona en escritorio,
-   pero el popup no vuelve a la PWA instalada en iOS); (b) para iOS, usar
-   `signInWithRedirect` con `authDomain` del mismo origen y autorizar
-   `https://abill-bb5a6.web.app/__/auth/handler` en el cliente OAuth de Google Cloud.
-   El login de **email/contraseña no tiene este problema** y es la vía recomendada hoy.
+1. **Login de Google retirado en v1.9.1 — no reintroducir a la ligera.** Se probaron las
+   tres variantes y las tres fallan con `auth/internal-error` en la PWA instalada en iOS:
+   - `signInWithPopup`: el popup se abre fuera de la app (Safari aparte) y no devuelve el
+     resultado.
+   - `signInWithRedirect` + `authDomain: firebaseapp.com`: Safari bloquea el almacenamiento
+     de terceros (ITP).
+   - `signInWithRedirect` + `authDomain: web.app` (mismo origen): va a Google y vuelve, pero
+     igualmente `auth/internal-error` al recoger el resultado (limitación de almacenamiento
+     en la PWA de iOS). Los URIs OAuth de `web.app` ya estaban autorizados, no era eso.
+
+   `authDomain` canónico del proyecto es `abill-bb5a6.firebaseapp.com` (ver
+   `https://abill-bb5a6.web.app/__/firebase/init.json`); el código lo forzaba a `web.app`.
+   El login por **email/contraseña** (REST, sin popup/redirect/iframe) funciona en todas
+   partes y es la única vía. Para volver a ofrecer social login en iOS haría falta un
+   wrapper nativo (Capacitor/Sign in with Apple/Google nativo), no el SDK web.
 
 2. **`admin-send.js` lee la colección equivocada.** Hace `db.collection('devices')`
    (nivel raíz), pero el modelo actual guarda los dispositivos en `users/{uid}/devices/...`.
