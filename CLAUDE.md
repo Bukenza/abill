@@ -44,6 +44,11 @@ el mismo número va en LOS TRES:
 2. `index.html` → línea `about-desc` (ej. `Aprende con Bill · v1.9`)
 3. `README.md` → footer (ej. `… · v1.9`)
 
+Además, en cada versión:
+4. Añadir una entrada en `CHANGELOG.md` (lo más nuevo arriba).
+5. Tras el push, crear el tag: `git tag vX.Y.Z && git push origin vX.Y.Z` (aparece
+   como "Release" en GitHub y permite volver a esa versión).
+
 NO sincronizar `.github/scripts/package.json` (`"version"`): es un componente
 independiente (el backend de notificaciones), con su propio versionado.
 
