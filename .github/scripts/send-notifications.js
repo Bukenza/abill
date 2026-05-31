@@ -156,6 +156,7 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour) {
       data: {
         title: '🧠 Abill — hora de repasar',
         body:  bodyText,
+        count: String(count),   // nº de tarjetas pendientes → globito del icono
         url:   APP_URL,
       },
       webpush: { fcmOptions: { link: APP_URL } },
@@ -223,6 +224,7 @@ async function sendReengagementIfInactive(deviceDoc, device, fcmToken, now) {
       data: {
         title: '👋 Abill te echa de menos',
         body:  'Estás a 5 min de seguir el camino del éxito.',
+        count: '1',
         url:   APP_URL,
       },
       webpush: { fcmOptions: { link: APP_URL } },

@@ -9,6 +9,20 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.11] — 2026-05-31
+### Añadido
+- **Globito (badge) en el icono de la app.** Al llegar una notificación, el icono
+  de Abill en la pantalla de inicio muestra el número de tarjetas pendientes
+  (Badging API). Requiere la PWA instalada en iOS 16.4+. Se quita al abrir la app.
+### Arreglado
+- **Las notificaciones no se borraban al abrir la app de forma normal** (solo al
+  pulsarlas). Ahora, cada vez que la app vuelve a primer plano, se cierran las
+  notificaciones que sigan en pantalla y se limpia el globito.
+### Interno
+- El backend incluye `count` (tarjetas pendientes) en el payload para el globito.
+- Limpieza centralizada en `onAppForeground()` (listener de `visibilitychange`):
+  marca actividad, quita globito, cierra notificaciones y refresca el inicio.
+
 ## [1.10] — 2026-05-31
 ### Arreglado
 - **Notificaciones duplicadas.** El backend mandaba el mensaje con un bloque

@@ -6,7 +6,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const CACHE = 'abill-v1.10';
+const CACHE = 'abill-v1.11';
 const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 // ── FIREBASE INIT ─────────────────────────────────────
@@ -33,6 +33,13 @@ const APP_URL   = 'https://abill-bb5a6.web.app';
 // Construimos la notificación desde payload.data y usamos siempre el mismo tag.
 messaging.onBackgroundMessage(payload => {
   const d = payload.data || {};
+
+  // Globito rojo con número sobre el icono de la app (Badging API). En iOS solo
+  // funciona en la PWA instalada (16.4+) y NO se pone solo: hay que llamarlo aquí.
+  // El backend manda en `count` cuántas tarjetas hay pendientes.
+  const count = parseInt(d.count, 10);
+  if (navigator.setAppBadge && count > 0) navigator.setAppBadge(count).catch(() => {});
+
   return self.registration.showNotification(d.title || '🧠 Abill', {
     body:  d.body || 'Tienes tarjetas para repasar.',
     icon:  '/icons/icon-192.png',

@@ -388,6 +388,39 @@ async function requestNotifPermission() {
   }
 }
 
+// ── GLOBITO (BADGE) Y LIMPIEZA DE NOTIFICACIONES ──────
+// Solo en la PWA instalada en iOS 16.4+ (Badging API). El globito rojo con el
+// número lo pone el Service Worker al llegar una push (ver sw.js). Aquí lo
+// quitamos y cerramos las notificaciones que sigan en pantalla al entrar.
+function clearAppBadge() {
+  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
+}
+
+async function dismissNotifications() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (reg.getNotifications) {
+      const list = await reg.getNotifications();
+      list.forEach(n => n.close());
+    }
+  } catch (e) { /* no soportado en este navegador: se ignora */ }
+}
+
+// Cada vez que la app vuelve a primer plano: marca actividad (desbloquea el
+// siguiente aviso en el backend), quita el globito, cierra las notificaciones
+// que sigan en pantalla y refresca el inicio.
+function onAppForeground() {
+  if (!currentUser) return;
+  updateDeviceActivity('open');
+  clearAppBadge();
+  dismissNotifications();
+  if (currentScreen === 'screen-home') renderHome();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') onAppForeground();
+});
+
 // ── SCREEN NAVIGATION ─────────────────────────────────
 // Orden lógico de las pantallas (izquierda→derecha en la barra inferior y,
 // después, las pantallas "profundas" que se abren desde otras). La POSICIÓN en
@@ -910,6 +943,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderHome();
       showScreen('screen-home');
       updateDeviceActivity('open');
+      clearAppBadge();
+      dismissNotifications();
       if (Notification.permission === 'granted' && settings.notifEnabled) {
         initFirebase().then(() => updatePendingNotif());
       }

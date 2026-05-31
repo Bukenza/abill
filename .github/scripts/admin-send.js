@@ -51,7 +51,7 @@ async function run() {
         // sale duplicado (igual que el envío automático).
         await messaging.send({
           token: fcmToken,
-          data: { title, body: message, url: APP_URL },
+          data: { title, body: message, count: '1', url: APP_URL },
           webpush: { fcmOptions: { link: APP_URL } },
         });
 
