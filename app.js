@@ -343,9 +343,18 @@ async function initFirebase() {
     const token = await messagingInstance.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: swReg });
     if (token) await saveFcmToken(token);
 
+    // App en primer plano: el backend manda SOLO datos (sin bloque `notification`),
+    // así que leemos de payload.data. Mostramos a través del Service Worker —
+    // un único origen de notificaciones (sin duplicados) y, además, `new
+    // Notification()` no existe dentro de la página en la PWA de iOS.
     messagingInstance.onMessage(payload => {
-      const { title, body } = payload.notification || {};
-      if (title && Notification.permission === 'granted') new Notification(title, { body, icon: '/icons/icon-192.png' });
+      const d = payload.data || payload.notification || {};
+      if (d.title && Notification.permission === 'granted') {
+        navigator.serviceWorker.ready.then(reg => reg.showNotification(d.title, {
+          body: d.body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+          tag: 'abill', renotify: true, data: { url: d.url || '/' },
+        })).catch(() => {});
+      }
     });
 
     return token;
@@ -380,24 +389,90 @@ async function requestNotifPermission() {
 }
 
 // ── SCREEN NAVIGATION ─────────────────────────────────
+// Orden lógico de las pantallas (izquierda→derecha en la barra inferior y,
+// después, las pantallas "profundas" que se abren desde otras). La POSICIÓN en
+// esta lista decide la dirección del deslizamiento: ir a un índice mayor =
+// avanzar (la nueva entra desde la derecha); menor = volver (entra desde la
+// izquierda). Las pantallas que NO están en la lista (login, loading) entran
+// con un fundido, sin deslizamiento.
+const SCREEN_ORDER = [
+  'screen-home', 'screen-decks', 'screen-new-card',
+  'screen-stats', 'screen-settings', 'screen-new-deck',
+  'screen-review', 'screen-done',
+];
+const SCREEN_ANIM_CLASSES = ['push-in', 'push-out', 'pop-in', 'pop-out', 'fade-in'];
+const SCREEN_ANIM_MS = 420; // > duración CSS (0.34s); margen para el fallback
+
 let currentScreen = 'screen-loading';
+let navSeq = 0;
+
+// Cada pantalla pinta su contenido justo antes de mostrarse
+function renderScreen(id) {
+  if (id === 'screen-home')      renderHome();
+  else if (id === 'screen-decks')    renderDecks();
+  else if (id === 'screen-new-card') renderNewCardForm();
+  else if (id === 'screen-stats')    renderStats();
+  else if (id === 'screen-settings') renderSettings();
+}
+
+function prefersReducedMotion() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+// Deja una única pantalla activa y sin clases de animación. Corta en seco
+// cualquier transición a medias (taps rápidos) para no acumular estado.
+function settleScreens() {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove(...SCREEN_ANIM_CLASSES);
+    if (s.id !== currentScreen) s.classList.remove('active');
+  });
+}
+
+// Quita las clases de animación al terminar (animationend), con un fallback por
+// si no dispara (reduce-motion, pestaña en segundo plano…). El token evita que
+// un timer viejo borre las clases de una transición posterior sobre la misma
+// pantalla.
+function clearAfterAnim(el, token, alsoDeactivate) {
+  const done = () => {
+    if (el.dataset.navToken !== String(token)) return;
+    el.classList.remove(...SCREEN_ANIM_CLASSES);
+    if (alsoDeactivate) el.classList.remove('active');
+  };
+  el.addEventListener('animationend', done, { once: true });
+  setTimeout(done, SCREEN_ANIM_MS);
+}
 
 function showScreen(id) {
-  const prev = document.getElementById(currentScreen);
   const next = document.getElementById(id);
   if (!next) return;
-  if (prev && prev !== next) {
-    prev.classList.remove('active');
-    prev.classList.add('prev');
-    setTimeout(() => prev.classList.remove('prev'), 300);
-  }
+  if (id === currentScreen) { renderScreen(id); return; }
+
+  settleScreens();
+  const prev = document.getElementById(currentScreen);
+  renderScreen(id);
+
+  const fromIdx = SCREEN_ORDER.indexOf(currentScreen);
+  const toIdx   = SCREEN_ORDER.indexOf(id);
+  const slide   = fromIdx !== -1 && toIdx !== -1 && !prefersReducedMotion();
+  const forward = toIdx >= fromIdx;
+  const token   = ++navSeq;
+
+  next.dataset.navToken = String(token);
   next.classList.add('active');
+  next.classList.add(slide ? (forward ? 'push-in' : 'pop-in') : 'fade-in');
+  clearAfterAnim(next, token, false);
+
+  if (prev && prev !== next) {
+    if (slide) {
+      prev.dataset.navToken = String(token);
+      prev.classList.add(forward ? 'push-out' : 'pop-out');
+      clearAfterAnim(prev, token, true);
+    } else {
+      prev.classList.remove('active');
+    }
+  }
+
   currentScreen = id;
-  if (id === 'screen-home') renderHome();
-  if (id === 'screen-decks') renderDecks();
-  if (id === 'screen-new-card') renderNewCardForm();
-  if (id === 'screen-stats') renderStats();
-  if (id === 'screen-settings') renderSettings();
 }
 
 // ── HOME ──────────────────────────────────────────────

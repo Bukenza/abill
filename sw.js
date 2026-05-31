@@ -6,7 +6,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-const CACHE = 'abill-v1.9.2';
+const CACHE = 'abill-v1.10';
 const ASSETS = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 // ── FIREBASE INIT ─────────────────────────────────────
@@ -21,16 +21,25 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Identidad única de las notificaciones de Abill. Un solo `tag` garantiza que
+// nunca se muestre más de una a la vez: una nueva reemplaza a la anterior.
+const NOTIF_TAG = 'abill';
+const APP_URL   = 'https://abill-bb5a6.web.app';
+
 // ── BACKGROUND PUSH MESSAGES (app cerrada) ────────────
+// El backend envía SOLO datos (sin bloque `notification`) para que el SDK de
+// FCM no pinte una notificación ADEMÁS de esta — antes salían DUPLICADAS (una
+// del SDK, otra de aquí, con tags distintos, por eso no se fusionaban).
+// Construimos la notificación desde payload.data y usamos siempre el mismo tag.
 messaging.onBackgroundMessage(payload => {
-  const { title, body } = payload.notification || {};
-  return self.registration.showNotification(title || '🧠 Abill', {
-    body: body || 'Tienes tarjetas para repasar.',
-    icon: '/icons/icon-192.png',
+  const d = payload.data || {};
+  return self.registration.showNotification(d.title || '🧠 Abill', {
+    body:  d.body || 'Tienes tarjetas para repasar.',
+    icon:  '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
-    tag: 'abill-review',
+    tag:   NOTIF_TAG,
     renotify: true,
-    data: { url: '/' },
+    data: { url: d.url || APP_URL },
   });
 });
 
@@ -79,12 +88,13 @@ self.addEventListener('fetch', e => {
 // ── NOTIFICATION CLICK ────────────────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || APP_URL;
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const client of list) {
         if (client.url.includes(self.location.origin) && 'focus' in client) return client.focus();
       }
-      return clients.openWindow('/');
+      return clients.openWindow(url);
     })
   );
 });

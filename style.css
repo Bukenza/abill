@@ -34,24 +34,52 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── NAVEGACIÓN ENTRE PANTALLAS ──────────────────────────────
+   Deslizamiento direccional estilo iOS. La dirección la decide
+   showScreen() en app.js según SCREEN_ORDER:
+   · avanzar  → la nueva entra desde la derecha (push) y la anterior
+                hace parallax hacia la izquierda.
+   · volver   → la actual sale hacia la derecha (pop) y la anterior
+                reaparece desde la izquierda.
+   Solo la pantalla .active se muestra; las clases de animación se
+   añaden y se limpian solas (animationend + fallback en JS), así NO
+   queda transform residual que descoloque las pantallas (era el origen
+   del antiguo efecto raro de "páginas de libro"). */
 .screen {
   position: fixed;
   inset: 0;
   display: none;
   flex-direction: column;
   background: var(--bg);
-  transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.screen.active {
-  display: flex;
-  transform: translateX(0);
-}
+.screen.active { display: flex; }
 
-.screen.prev {
-  display: flex;
-  transform: translateX(-30%);
+.screen.push-in, .screen.push-out,
+.screen.pop-in,  .screen.pop-out { will-change: transform; }
+
+/* La pantalla que viaja "por encima" lleva una sombra de separación */
+.screen.push-in, .screen.pop-out { box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3); }
+
+.screen.push-in  { z-index: 2; animation: scr-push-in  0.34s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+.screen.push-out { z-index: 1; animation: scr-push-out 0.34s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+.screen.pop-in   { z-index: 1; animation: scr-pop-in   0.34s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+.screen.pop-out  { z-index: 2; animation: scr-pop-out  0.34s cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+.screen.fade-in  { z-index: 2; animation: scr-fade-in  0.26s ease forwards; }
+
+@keyframes scr-push-in  { from { transform: translateX(100%); }  to { transform: translateX(0); } }
+@keyframes scr-push-out { from { transform: translateX(0); }     to { transform: translateX(-22%); } }
+@keyframes scr-pop-in   { from { transform: translateX(-22%); }  to { transform: translateX(0); } }
+@keyframes scr-pop-out  { from { transform: translateX(0); }     to { transform: translateX(100%); } }
+@keyframes scr-fade-in  { from { opacity: 0; }                   to { opacity: 1; } }
+
+/* Accesibilidad: si el usuario pide menos movimiento, la transición es casi
+   instantánea (mantenemos una duración mínima para que 'animationend' siga
+   disparando y showScreen limpie las clases igual que en el caso animado). */
+@media (prefers-reduced-motion: reduce) {
+  .screen.push-in, .screen.push-out,
+  .screen.pop-in,  .screen.pop-out,
+  .screen.fade-in { animation-duration: 0.01s; }
 }
 
 /* LOADING SCREEN */
@@ -110,25 +138,6 @@ html, body {
   margin: 0 0 20px;
 }
 
-.btn-google {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: #fff;
-  color: #1a1a1a;
-  border: none;
-  border-radius: var(--radius);
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: 500;
-  font-family: var(--font);
-  cursor: pointer;
-  width: 100%;
-  transition: opacity 0.15s;
-}
-.btn-google:active { opacity: 0.75; }
-
 /* AUTH VIEWS (login / register / reset) */
 .auth-view {
   width: 100%;
@@ -152,24 +161,6 @@ html, body {
 
 .auth-form .btn-primary {
   margin-top: 4px;
-}
-
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text3);
-  font-size: 12px;
-  font-family: var(--font-mono);
-  margin: 2px 0;
-}
-
-.auth-divider::before,
-.auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 0.5px;
-  background: var(--border);
 }
 
 .auth-links {

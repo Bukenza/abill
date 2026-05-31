@@ -9,6 +9,32 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.10] — 2026-05-31
+### Arreglado
+- **Notificaciones duplicadas.** El backend mandaba el mensaje con un bloque
+  `notification`, así que en segundo plano el SDK de Firebase pintaba un aviso
+  y, además, el Service Worker pintaba otro (con un `tag` distinto, por eso no
+  se fusionaban): llegaban DOS notificaciones iguales. Ahora los mensajes son
+  *solo datos* y el Service Worker es el único que crea el aviso, siempre con el
+  mismo `tag` → como mucho una notificación de Abill a la vez.
+- **Re-engagement podía duplicarse.** El aviso de los lunes ("Abill te echa de
+  menos") se enviaba sin reserva atómica; dos ejecuciones solapadas del workflow
+  podían mandarlo dos veces. Ahora usa una transacción de Firestore (máx. 1 al día).
+- **`admin-send.js` no enviaba a nadie.** Leía una colección raíz `devices` que
+  ya no existe; ahora recorre `users/*/devices/*` como el envío automático y
+  deduplica tokens.
+### Cambiado
+- **Transiciones entre pantallas estilo iOS.** Deslizamiento direccional fluido:
+  al avanzar, la pantalla nueva entra desde la derecha con parallax de la
+  anterior; al volver, sale hacia la derecha y reaparece la previa desde la
+  izquierda. Desaparece el efecto raro de "páginas de libro" al navegar atrás.
+  Respeta `prefers-reduced-motion`.
+### Interno
+- Origen único de las notificaciones (datos + `tag` unificado en `sw.js` y
+  `app.js`), navegación robusta (`SCREEN_ORDER`, limpieza por `animationend` con
+  fallback y token anti-carrera, sin estado residual) y eliminación de CSS muerto
+  del antiguo login de Google (`.btn-google`, `.auth-divider`).
+
 ## [1.9.2] — 2026-05-31
 ### Arreglado
 - **Zoom automático en iPhone.** Safari hacía zoom al tocar un campo de texto

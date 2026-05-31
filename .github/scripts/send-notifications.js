@@ -29,6 +29,8 @@ const messaging = admin.messaging();
 const QUIET_ZONE_MS   = 2  * 60 * 60 * 1000;  // 2h  — buffer mínimo fases 1–2
 const PHASE3_SNOOZE   = 20 * 60 * 60 * 1000;  // 20h — buffer mínimo fase 3
 const REENGAGEMENT_MS = 5  * 24 * 60 * 60 * 1000; // 5 días sin abrir
+const REENG_COOLDOWN  = 23 * 60 * 60 * 1000;      // máx. 1 re-engagement al día
+const APP_URL         = 'https://abill-bb5a6.web.app';
 
 // ── UTILIDADES DE ZONA HORARIA (Europe/Madrid = Barcelona) ───────────
 
@@ -145,13 +147,18 @@ async function sendRegularIfDue(deviceDoc, device, fcmToken, now, madridHour) {
       ? `Tienes ${count} tarjetas para repasar. ¡No pierdas tu racha! 🔥`
       : 'Tienes tarjetas para repasar. ¡No pierdas tu racha! 🔥';
 
+    // Mensaje SOLO de datos (sin bloque `notification`): así el SDK de FCM no
+    // auto-muestra una notificación ADEMÁS de la que pinta `onBackgroundMessage`
+    // en sw.js. Con `notification` salían DOS (una del SDK, otra del SW). El SW
+    // construye el aviso desde `data` y usa un único `tag`.
     await messaging.send({
       token: fcmToken,
-      notification: { title: '🧠 Abill — hora de repasar', body: bodyText },
-      webpush: {
-        notification: { icon: '/icons/icon-192.png', tag: 'abill-pending', renotify: true },
-        fcmOptions:   { link: 'https://abill-bb5a6.web.app' },
+      data: {
+        title: '🧠 Abill — hora de repasar',
+        body:  bodyText,
+        url:   APP_URL,
       },
+      webpush: { fcmOptions: { link: APP_URL } },
     });
 
     console.log(`[OK] Fase ${notifPhase} → ${deviceDoc.id} (${count} tarjeta/s)`);
@@ -186,17 +193,39 @@ async function sendReengagementIfInactive(deviceDoc, device, fcmToken, now) {
 
   if (inactiveSince < REENGAGEMENT_MS) return;
 
+  // ── Reserva atómica ───────────────────────────────────────────────
+  // A diferencia del envío regular, esta función no tenía candado: dos
+  // ejecuciones solapadas del workflow podían mandar el re-engagement por
+  // duplicado. Con la transacción solo una gana, y como mucho 1 vez al día.
+  const reengRef = deviceDoc.ref.collection('notifications').doc('reengagement');
+  let claimed = false;
   try {
+    await db.runTransaction(async (tx) => {
+      const snap     = await tx.get(reengRef);
+      const lastSent = snap.exists ? (snap.data().lastSent || 0) : 0;
+      if (now - lastSent < REENG_COOLDOWN) return; // ya enviado hoy
+      tx.set(reengRef, { lastSent: now }, { merge: true });
+      claimed = true;
+    });
+  } catch (err) {
+    console.error(`[TXN ERROR RE-ENG] ${deviceDoc.id}: ${err.message}`);
+    return;
+  }
+  if (!claimed) {
+    console.log(`[SKIP] ${deviceDoc.id} — re-engagement ya enviado recientemente`);
+    return;
+  }
+
+  try {
+    // Solo datos (igual que el envío regular) → sw.js pinta un único aviso.
     await messaging.send({
       token: fcmToken,
-      notification: {
+      data: {
         title: '👋 Abill te echa de menos',
         body:  'Estás a 5 min de seguir el camino del éxito.',
+        url:   APP_URL,
       },
-      webpush: {
-        notification: { icon: '/icons/icon-192.png', tag: 'abill-reengagement', renotify: true },
-        fcmOptions:   { link: 'https://abill-bb5a6.web.app' },
-      },
+      webpush: { fcmOptions: { link: APP_URL } },
     });
 
     console.log(`[RE-ENGAGEMENT] Enviado a ${deviceDoc.id} (inactivo ${Math.round(inactiveSince / 86400000)} días)`);
