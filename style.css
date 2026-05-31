@@ -147,7 +147,7 @@ html, body {
 }
 
 .auth-form .field-input {
-  font-size: 14px;
+  font-size: 16px; /* mín. 16px o iOS hace zoom al enfocar */
 }
 
 .auth-form .btn-primary {
@@ -561,7 +561,7 @@ html, body {
   border-radius: var(--radius);
   padding: 13px 15px;
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px; /* 16px evita el zoom automático de iOS al enfocar el campo */
   font-family: var(--font);
   resize: none;
   outline: none;
@@ -956,7 +956,7 @@ html, body {
   border: 0.5px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  font-size: 14px;
+  font-size: 16px; /* 16px evita el zoom automático de iOS al enfocar */
   font-family: var(--font-mono);
   padding: 6px 10px;
   outline: none;
