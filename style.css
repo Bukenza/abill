@@ -856,6 +856,10 @@ html, body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* El bottom bar es position:absolute, no ocupa flex space.
+     Restamos su altura del cálculo para que las proporciones
+     internas sean sobre el espacio visible real. */
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 
 /* 15% — monos + título */
@@ -965,7 +969,8 @@ html, body {
 .cal-mv-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
+  align-content: space-evenly;
   flex: 1;
   min-height: 0;
 }
@@ -1023,7 +1028,6 @@ html, body {
   flex: 8;
   min-height: 0;
   overflow: hidden;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 #screen-stats .stats-row-2 {
