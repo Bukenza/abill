@@ -13,7 +13,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Abill</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Open+Sans:wght@400;600;700&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -356,10 +356,126 @@
   <!-- PANTALLA: STATS -->
   <div id="screen-stats" class="screen">
     <div class="safe-top"></div>
-    <div class="screen-content">
-      <div class="nav-header">
-        <h2 class="nav-title">Estadísticas</h2>
+    <div class="screen-content screen-content--stats">
+
+      <!-- Top: 15% — monos + título -->
+      <div class="stats-top">
+        <div class="monkeys-banner">
+          <svg class="monkeys-svg" viewBox="0 0 270 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- ── M1: VER (Mizaru) cx=45 ── -->
+            <g>
+              <circle cx="19" cy="38" r="8"   fill="#4a2810"/>
+              <circle cx="71" cy="38" r="8"   fill="#4a2810"/>
+              <circle cx="19" cy="38" r="4.5" fill="#a05030"/>
+              <circle cx="71" cy="38" r="4.5" fill="#a05030"/>
+              <circle cx="45" cy="52" r="27" fill="#7b4f2e"/>
+              <ellipse cx="45" cy="54" rx="18" ry="20" fill="#c17a50"/>
+              <ellipse cx="37" cy="47" rx="5.5" ry="6"  fill="white"/>
+              <circle  cx="38.5" cy="49"   r="3.5"       fill="#1a0800"/>
+              <circle  cx="40"   cy="47"   r="1.3"        fill="white"/>
+              <ellipse cx="53" cy="47" rx="5.5" ry="6"  fill="white"/>
+              <circle  cx="54.5" cy="49"   r="3.5"       fill="#1a0800"/>
+              <circle  cx="56"   cy="47"   r="1.3"        fill="white"/>
+              <ellipse cx="45" cy="58" rx="4" ry="2.5" fill="#3d1a08"/>
+              <circle  cx="43.2" cy="58" r="1.2" fill="#2a0f04"/>
+              <circle  cx="46.8" cy="58" r="1.2" fill="#2a0f04"/>
+              <path d="M40 64 Q45 68 50 64" stroke="#3d1a08" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <g class="m1-paw-l">
+                <circle cx="25"   cy="42"   r="4.5" fill="#4a2810"/>
+                <circle cx="29.5" cy="39.5" r="4.5" fill="#4a2810"/>
+                <circle cx="34.5" cy="39"   r="4.5" fill="#4a2810"/>
+                <circle cx="39.5" cy="40.5" r="4"   fill="#4a2810"/>
+                <ellipse cx="32" cy="47" rx="13" ry="8.5" fill="#4a2810"/>
+              </g>
+              <g>
+                <circle cx="50.5" cy="40.5" r="4"   fill="#4a2810"/>
+                <circle cx="55.5" cy="39"   r="4.5" fill="#4a2810"/>
+                <circle cx="60.5" cy="39.5" r="4.5" fill="#4a2810"/>
+                <circle cx="65"   cy="42"   r="4.5" fill="#4a2810"/>
+                <ellipse cx="58" cy="47" rx="13" ry="8.5" fill="#4a2810"/>
+              </g>
+            </g>
+
+            <!-- ── M2: HABLAR (Iwazaru) cx=135 ── -->
+            <g class="m2-group">
+              <circle cx="109" cy="38" r="8"   fill="#4a2810"/>
+              <circle cx="161" cy="38" r="8"   fill="#4a2810"/>
+              <circle cx="109" cy="38" r="4.5" fill="#a05030"/>
+              <circle cx="161" cy="38" r="4.5" fill="#a05030"/>
+              <circle cx="135" cy="52" r="27" fill="#7b4f2e"/>
+              <ellipse cx="135" cy="54" rx="18" ry="20" fill="#c17a50"/>
+              <ellipse cx="127" cy="47" rx="5.5" ry="6"  fill="white"/>
+              <circle  cx="128.5" cy="49"   r="3.5"       fill="#1a0800"/>
+              <circle  cx="130"   cy="47"   r="1.3"        fill="white"/>
+              <ellipse cx="143" cy="47" rx="5.5" ry="6"  fill="white"/>
+              <circle  cx="144.5" cy="49"   r="3.5"       fill="#1a0800"/>
+              <circle  cx="146"   cy="47"   r="1.3"        fill="white"/>
+              <ellipse cx="135" cy="58" rx="4" ry="2.5" fill="#3d1a08"/>
+              <circle  cx="133.2" cy="58" r="1.2" fill="#2a0f04"/>
+              <circle  cx="136.8" cy="58" r="1.2" fill="#2a0f04"/>
+              <path d="M130 64 Q135 68 140 64" stroke="#3d1a08" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <g>
+                <circle cx="120"   cy="60"   r="4"   fill="#4a2810"/>
+                <circle cx="124"   cy="58"   r="4.5" fill="#4a2810"/>
+                <circle cx="128.5" cy="57.5" r="4.5" fill="#4a2810"/>
+                <circle cx="133"   cy="59"   r="4"   fill="#4a2810"/>
+                <ellipse cx="125" cy="65" rx="12" ry="8" fill="#4a2810"/>
+              </g>
+              <g>
+                <circle cx="137"   cy="59"   r="4"   fill="#4a2810"/>
+                <circle cx="141.5" cy="57.5" r="4.5" fill="#4a2810"/>
+                <circle cx="146"   cy="58"   r="4.5" fill="#4a2810"/>
+                <circle cx="150"   cy="60"   r="4"   fill="#4a2810"/>
+                <ellipse cx="145" cy="65" rx="12" ry="8" fill="#4a2810"/>
+              </g>
+            </g>
+
+            <!-- ── M3: OÍR (Kikazaru) cx=225 ── -->
+            <g class="m3-group">
+              <circle cx="225" cy="52" r="27" fill="#7b4f2e"/>
+              <circle cx="199" cy="38" r="8"   fill="#4a2810"/>
+              <circle cx="251" cy="38" r="8"   fill="#4a2810"/>
+              <circle cx="199" cy="38" r="4.5" fill="#a05030"/>
+              <circle cx="251" cy="38" r="4.5" fill="#a05030"/>
+              <ellipse cx="225" cy="54" rx="18" ry="20" fill="#c17a50"/>
+              <ellipse cx="217" cy="47" rx="5.5" ry="6"  fill="white"/>
+              <circle  cx="218.5" cy="49"   r="3.5"       fill="#1a0800"/>
+              <circle  cx="220"   cy="47"   r="1.3"        fill="white"/>
+              <ellipse cx="233" cy="47" rx="5.5" ry="6"  fill="white"/>
+              <circle  cx="234.5" cy="49"   r="3.5"       fill="#1a0800"/>
+              <circle  cx="236"   cy="47"   r="1.3"        fill="white"/>
+              <ellipse cx="225" cy="58" rx="4" ry="2.5" fill="#3d1a08"/>
+              <circle  cx="223.2" cy="58" r="1.2" fill="#2a0f04"/>
+              <circle  cx="226.8" cy="58" r="1.2" fill="#2a0f04"/>
+              <path d="M220 64 Q225 68 230 64" stroke="#3d1a08" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <g>
+                <circle cx="193"   cy="26"   r="4"   fill="#4a2810"/>
+                <circle cx="197"   cy="23.5" r="4.5" fill="#4a2810"/>
+                <circle cx="201.5" cy="23"   r="4.5" fill="#4a2810"/>
+                <circle cx="206"   cy="25"   r="4"   fill="#4a2810"/>
+                <ellipse cx="200" cy="35" rx="11" ry="13" fill="#4a2810"/>
+              </g>
+              <g>
+                <circle cx="244"   cy="25"   r="4"   fill="#4a2810"/>
+                <circle cx="248.5" cy="23"   r="4.5" fill="#4a2810"/>
+                <circle cx="253"   cy="23.5" r="4.5" fill="#4a2810"/>
+                <circle cx="257"   cy="26"   r="4"   fill="#4a2810"/>
+                <ellipse cx="250" cy="35" rx="11" ry="13" fill="#4a2810"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div class="nav-header nav-header--stats">
+          <h2 class="nav-title">Estadísticas</h2>
+          <p class="nav-banner-sub" id="bill-banner-sub"></p>
+        </div>
       </div>
+
+      <!-- Calendario: 45% -->
+      <div id="stats-cal-section"></div>
+
+      <!-- Datos: 40% -->
       <div class="stats-grid" id="stats-grid"></div>
     </div>
     <div class="bottom-bar">
@@ -442,7 +558,7 @@
           <div class="bill-avatar large">B</div>
           <div>
             <div class="about-name">Abill</div>
-            <div class="about-desc">Aprende con Bill · v1.11</div>
+            <div class="about-desc">Aprende con Bill · v1.12</div>
             <div class="about-desc">Repetición espaciada · SM-2</div>
           </div>
         </div>

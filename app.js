@@ -30,7 +30,7 @@ function setData(key, val) {
 let decks = getData('abill_decks', []);
 let cards = getData('abill_cards', []);
 let settings = getData('abill_settings', { notifEnabled: false, notifTime: '08:00' });
-let stats = getData('abill_stats', { totalReviewed: 0, totalCorrect: 0, streak: 0, lastReviewDate: null });
+let stats = getData('abill_stats', { totalReviewed: 0, totalCorrect: 0, streak: 0, lastReviewDate: null, history: {} });
 
 let reviewQueue = [], reviewIndex = 0, currentCard = null;
 let reviewAnswered = false;
@@ -825,6 +825,9 @@ function finishReview() {
   updateStreak();
   stats.totalReviewed += total;
   stats.totalCorrect += sessionResults.good;
+  if (!stats.history) stats.history = {};
+  const todayKey = new Date().toISOString().split('T')[0];
+  stats.history[todayKey] = (stats.history[todayKey] || 0) + total;
   setData('abill_stats', stats);
   document.getElementById('done-sub').textContent = `Has repasado ${total} tarjeta${total !== 1 ? 's' : ''}.`;
   document.getElementById('done-stats').innerHTML = `
@@ -846,16 +849,67 @@ function updateStreak() {
 }
 
 // ── STATS ─────────────────────────────────────────────
+function renderCalendar() {
+  const el = document.getElementById('stats-cal-section');
+  if (!el) return;
+  const history  = stats.history || {};
+  const today    = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const year     = today.getFullYear();
+  const month    = today.getMonth();
+  const MNAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const DLBLS  = ['L','M','X','J','V','S','D'];
+  const firstDay    = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  let startDow = firstDay.getDay() - 1;
+  if (startDow < 0) startDow = 6;
+  let html = `<div class="cal-mv-title">${MNAMES[month]} <span class="cal-mv-year">${year}</span></div>`;
+  html += '<div class="cal-mv-weekdays">';
+  DLBLS.forEach(d => { html += `<div class="cal-mv-wlbl">${d}</div>`; });
+  html += '</div><div class="cal-mv-grid">';
+  for (let i = 0; i < startDow; i++) html += '<div class="cal-mv-cell cal-mv-empty"></div>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const mm  = String(month + 1).padStart(2, '0');
+    const dd  = String(day).padStart(2, '0');
+    const key = `${year}-${mm}-${dd}`;
+    const done    = (history[key] || 0) > 0;
+    const isToday = key === todayStr;
+    const future  = key > todayStr;
+    const cls = ['cal-mv-cell', done && !future ? 'cal-mv-done' : '', isToday ? 'cal-mv-today' : '', future ? 'cal-mv-future' : ''].filter(Boolean).join(' ');
+    const inner = done && !future ? '<span class="cal-mv-ltr">B</span>' : `<span class="cal-mv-num">${day}</span>`;
+    html += `<div class="${cls}"><div class="cal-mv-circle">${inner}</div></div>`;
+  }
+  const totalCells = startDow + daysInMonth;
+  const remainder  = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (let d = 1; d <= remainder; d++) {
+    html += `<div class="cal-mv-cell cal-mv-overflow"><div class="cal-mv-circle"><span class="cal-mv-num">${d}</span></div></div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function getBillBannerContent() {
+  const due = getDueCount();
+  if (cards.length === 0)  return 'Crea tu primera tarjeta 👋';
+  if (due === 0)           return 'Todo al día — sin pendientes hoy 🎉';
+  if (stats.streak >= 7)  return `${stats.streak} días de racha — ¡imparable! 🔥`;
+  if (stats.streak >= 3)  return `${stats.streak} días de racha — ¡sigue así! 🔥`;
+  if (stats.streak === 1) return 'Primer día completado ⭐';
+  return `${due} tarjeta${due !== 1 ? 's' : ''} pendiente${due !== 1 ? 's' : ''} hoy`;
+}
+
 function renderStats() {
+  const subEl = document.getElementById('bill-banner-sub');
+  if (subEl) subEl.textContent = getBillBannerContent();
+  renderCalendar();
   const accuracy = stats.totalReviewed > 0 ? Math.round((stats.totalCorrect / stats.totalReviewed) * 100) : 0;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stats-big-card"><div class="stats-big-title">Racha actual</div><div class="stats-big-val" style="color:var(--meh)">${stats.streak}🔥</div><div class="stats-big-sub">días consecutivos</div></div>
     <div class="stats-row-2">
+      <div class="stats-big-card"><div class="stats-big-title">Racha</div><div class="stats-big-val" style="color:var(--meh)">${stats.streak}🔥</div><div class="stats-big-sub">días seguidos</div></div>
       <div class="stats-big-card"><div class="stats-big-title">Tarjetas</div><div class="stats-big-val">${cards.length}</div><div class="stats-big-sub">en total</div></div>
-      <div class="stats-big-card"><div class="stats-big-title">Pendientes</div><div class="stats-big-val" style="color:var(--accent2)">${getDueCount()}</div><div class="stats-big-sub">para hoy</div></div>
     </div>
     <div class="stats-row-2">
-      <div class="stats-big-card"><div class="stats-big-title">Repasos</div><div class="stats-big-val">${stats.totalReviewed}</div><div class="stats-big-sub">totales</div></div>
+      <div class="stats-big-card"><div class="stats-big-title">Pendientes</div><div class="stats-big-val" style="color:var(--accent2)">${getDueCount()}</div><div class="stats-big-sub">para hoy</div></div>
       <div class="stats-big-card"><div class="stats-big-title">Precisión</div><div class="stats-big-val" style="color:var(--good)">${accuracy}%</div><div class="stats-big-sub">correctas</div></div>
     </div>`;
 }

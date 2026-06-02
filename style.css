@@ -850,27 +850,209 @@ html, body {
 .done-stat-lbl { font-size: 11px; color: var(--text3); }
 
 /* STATS SCREEN */
+/* ── PANTALLA STATS — layout proporcional sin scroll ── */
+.screen-content--stats {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 15% — monos + título */
+.stats-top {
+  flex: 3;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.monkeys-banner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 0 0;
+  overflow: hidden;
+}
+
+.monkeys-svg {
+  width: auto;
+  max-height: 72px;
+  display: block;
+}
+
+.nav-header--stats {
+  padding: 0 18px 4px;
+  flex-shrink: 0;
+}
+
+.nav-banner-sub {
+  font-size: 12px;
+  color: var(--text3);
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+}
+
+/* Animaciones monos */
+.m1-paw-l {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: m1-peek 3.2s ease-in-out infinite;
+}
+@keyframes m1-peek {
+  0%, 100% { transform: translateY(0); }
+  40%, 60% { transform: translateY(-7px); }
+}
+
+.m2-group {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: m2-shake 4s ease-in-out infinite 0.8s;
+}
+@keyframes m2-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20%       { transform: rotate(-6deg); }
+  40%       { transform: rotate(6deg); }
+  60%       { transform: rotate(-4deg); }
+  80%       { transform: rotate(3deg); }
+}
+
+.m3-group {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: m3-lean 3.8s ease-in-out infinite 1.6s;
+}
+@keyframes m3-lean {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  35%, 65% { transform: translateY(-4px) rotate(-5deg); }
+}
+
+/* 45% — calendario */
+#stats-cal-section {
+  flex: 9;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 18px 4px;
+}
+
+.cal-mv-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font);
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+.cal-mv-year { color: var(--text3); font-weight: 400; }
+
+.cal-mv-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.cal-mv-wlbl {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+
+.cal-mv-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.cal-mv-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-mv-circle {
+  aspect-ratio: 1;
+  width: min(74%, 38px);
+  border-radius: 50%;
+  border: 1.5px solid var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal-mv-done .cal-mv-circle        { background: white; border: none; }
+.cal-mv-today .cal-mv-circle       { border: 2.5px solid var(--accent2); }
+.cal-mv-today.cal-mv-done .cal-mv-circle { background: white; border: 2.5px solid var(--accent2); }
+.cal-mv-future .cal-mv-circle      { border-color: var(--bg3); }
+.cal-mv-overflow .cal-mv-circle    { border-color: transparent; }
+
+.cal-mv-num {
+  font-size: 15px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  color: var(--text2);
+  line-height: 1;
+}
+.cal-mv-today .cal-mv-num    { color: var(--accent2); font-weight: 700; }
+.cal-mv-future .cal-mv-num   { color: var(--text3); }
+.cal-mv-overflow .cal-mv-num { color: var(--text3); opacity: 0.3; }
+
+.cal-mv-ltr {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'Open Sans', sans-serif;
+  line-height: 1;
+}
+
+/* 40% — tarjetas de datos */
 .stats-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  padding: 0 18px;
+}
+
+#screen-stats .stats-grid {
+  flex: 8;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+#screen-stats .stats-row-2 {
+  flex: 1;
+  min-height: 0;
+}
+
+#screen-stats .stats-row-2 .stats-big-card {
+  height: 100%;
 }
 
 .stats-big-card {
   background: var(--bg2);
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .stats-big-title { font-size: 12px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-.stats-big-val { font-size: 32px; font-weight: 600; color: var(--text); font-family: var(--font-mono); }
+.stats-big-val { font-size: 44px; font-weight: 600; color: var(--text); font-family: var(--font-mono); }
 .stats-big-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
 
 .stats-row-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* SETTINGS */
