@@ -9,6 +9,19 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.14] — 2026-06-03
+### Añadido
+- **Swipe lateral entre pestañas.** Deslizar el dedo en horizontal cambia entre las
+  cuatro pantallas principales (Inicio · Mazos · Stats · Config), aprovechando las
+  animaciones direccionales que ya tenía `showScreen()`. Umbral de 60px y dominancia
+  horizontal (2×) para no dispararse al hacer scroll vertical; ignora gestos que
+  empiezan sobre campos de texto y los de más de un dedo.
+### Cambiado
+- **Zoom desactivado** (pellizco y doble toque): viewport con `maximum-scale=1` +
+  `user-scalable=no`, `touch-action: manipulation` y bloqueo de los gestos de
+  pellizco de Safari iOS. Da sensación de app nativa.
+- La **rotación** ya estaba bloqueada a vertical vía `manifest.json` (`orientation`).
+
 ## [1.13] — 2026-06-03
 ### Cambiado
 - **Pantalla de Configuración rediseñada sin scroll.** Lo primero y más visible es

@@ -32,6 +32,7 @@ html, body {
   line-height: 1.5;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  touch-action: manipulation; /* sin doble-toque para zoom ni retardo de 300ms */
 }
 
 /* ── NAVEGACIÓN ENTRE PANTALLAS ──────────────────────────────
