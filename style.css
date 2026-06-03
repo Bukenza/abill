@@ -1,13 +1,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --bg: #0f0f12;
-  --bg2: #1a1a24;
-  --bg3: #22222e;
-  --border: #2a2a38;
-  --text: #f0f0f0;
-  --text2: #a0a0b0;
-  --text3: #555566;
+  --bg: #000000;
+  --bg2: #1c1c1e;
+  --bg3: #2c2c2e;
+  --border: #3a3a3c;
+  --text: #f2f2f7;
+  --text2: #98989e;
+  --text3: #48484a;
   --accent: #61C1CB;
   --accent2: #c1cb61;
   --accent3: #cb61c1;

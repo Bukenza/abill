@@ -9,6 +9,13 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.15.1] — 2026-06-03
+### Arreglado
+- **Fondos morados eliminados.** Los grises de fondo tenían un componente azul
+  desproporcionado que creaba un cast morado. Reemplazados por grises neutros puros
+  estilo Apple HIG: `--bg #000000`, `--bg2 #1c1c1e`, `--bg3 #2c2c2e`,
+  `--border #3a3a3c`, `--text2 #98989e`, `--text3 #48484a`.
+
 ## [1.15] — 2026-06-03
 ### Cambiado
 - **Rebranding de colores.** Nueva paleta triádica: `--accent` → azul-teal `#61C1CB`
