@@ -504,70 +504,57 @@
   <!-- PANTALLA: CONFIGURACIÓN -->
   <div id="screen-settings" class="screen">
     <div class="safe-top"></div>
-    <div class="screen-content">
-      <div class="nav-header">
-        <h2 class="nav-title">Configuración</h2>
-      </div>
+    <div class="screen-content screen-content--settings">
+      <div class="settings-inner">
 
-      <div class="settings-section">
-        <div class="settings-section-title">Notificaciones</div>
+        <div class="nav-header nav-header--settings">
+          <h2 class="nav-title">Configuración</h2>
+        </div>
 
-        <div class="setting-row">
+        <!-- HERO: activar notificaciones push, lo primero y más visible -->
+        <div class="push-hero">
+          <div class="push-hero-icon">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="push-hero-title">Notificaciones push</div>
+          <div class="push-hero-sub" id="notif-status">Pulsa para recibir recordatorios de repaso</div>
+          <button class="btn-primary full-btn" id="notif-btn" onclick="requestNotifPermission()">Activar notificaciones push</button>
+        </div>
+
+        <!-- Recordatorio diario -->
+        <div class="setting-card">
+          <div class="setting-card-row">
+            <div class="setting-info">
+              <div class="setting-name">Recordatorio diario</div>
+              <div class="setting-desc">A tu hora</div>
+            </div>
+            <input type="time" id="notif-time" class="time-input" value="08:00" onchange="saveSettings()">
+            <label class="toggle">
+              <input type="checkbox" id="notif-enabled" onchange="saveSettings()">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="setting-note-inline">
+            Máx. 2 avisos al día los primeros días; luego 1 a tu hora. Nunca entre 22:00 y 07:00.
+          </div>
+        </div>
+
+        <!-- Cuenta -->
+        <div class="setting-card setting-card-row">
           <div class="setting-info">
-            <div class="setting-name">Activar recordatorios</div>
-            <div class="setting-desc">Aviso diario cuando toca repasar</div>
+            <div class="setting-name">Tu cuenta</div>
+            <div class="setting-desc" id="user-email-display">···</div>
           </div>
-          <label class="toggle">
-            <input type="checkbox" id="notif-enabled" onchange="saveSettings()">
-            <span class="toggle-slider"></span>
-          </label>
+          <button class="ghost-btn" onclick="signOut()">Cerrar sesión</button>
         </div>
 
-        <div class="setting-row" id="notif-time-row">
-          <div class="setting-info">
-            <div class="setting-name">Hora del recordatorio diario</div>
-            <div class="setting-desc">Puedes elegir cualquier hora</div>
-          </div>
-          <input type="time" id="notif-time" class="time-input" value="08:00" onchange="saveSettings()">
+        <!-- Footer pegado abajo -->
+        <div class="settings-footer">
+          <button class="text-danger-btn" onclick="confirmReset()">Borrar todos los datos</button>
+          <div class="about-desc">Aprende con Bill · v1.13</div>
         </div>
 
-        <div class="setting-note">
-          ℹ️ Días 1–2 de cada tarjeta: máx. 2 avisos al día según el algoritmo. A partir del 3er día: 1 aviso diario a la hora que configures. Nunca entre 22:00 y 07:00.
-        </div>
       </div>
-
-      <div class="settings-section">
-        <div class="settings-section-title">Datos</div>
-        <button class="setting-danger-btn" onclick="confirmReset()">Borrar todos los datos</button>
-      </div>
-
-      <div class="settings-section">
-        <div class="settings-section-title">Cuenta</div>
-        <div class="setting-row">
-          <div class="setting-info">
-            <div class="setting-name">ID anónimo</div>
-            <div class="setting-desc" id="user-id-display">···</div>
-          </div>
-        </div>
-        <button class="setting-danger-btn" onclick="signOut()">Cerrar sesión</button>
-      </div>
-
-      <div class="settings-section">
-        <div class="settings-section-title">Acerca de</div>
-        <div class="about-block">
-          <div class="bill-avatar large">B</div>
-          <div>
-            <div class="about-name">Abill</div>
-            <div class="about-desc">Aprende con Bill · v1.12.6</div>
-            <div class="about-desc">Repetición espaciada · SM-2</div>
-          </div>
-        </div>
-      </div>
-
-      <button class="btn-primary full-btn" onclick="requestNotifPermission()">
-        Activar notificaciones push
-      </button>
-      <p class="notif-hint" id="notif-status"></p>
     </div>
     <div class="bottom-bar">
       <button class="tab" onclick="showScreen('screen-home')">

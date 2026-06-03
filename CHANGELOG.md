@@ -9,6 +9,30 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.13] — 2026-06-03
+### Cambiado
+- **Pantalla de Configuración rediseñada sin scroll.** Lo primero y más visible es
+  ahora **activar las notificaciones push** (tarjeta destacada con el botón arriba
+  del todo), ya que son el núcleo de la app. El botón pasa a estado "✓ Activadas"
+  cuando se concede el permiso.
+- **Recordatorio diario** unificado en una sola tarjeta: hora + interruptor juntos,
+  con la nota de funcionamiento condensada debajo.
+- **Cuenta** muestra el email en vez del ID anónimo (resto de la era de auth anónima).
+- Eliminados el bloque "Acerca de" con avatar y los títulos de sección redundantes;
+  la versión queda en un pie discreto. Acción de borrar datos movida al pie, lejos
+  de las opciones habituales.
+- Contenido limitado a 460px y centrado para pantallas grandes/plegables.
+
+## [1.12] — 2026-06-02
+### Añadido
+- **Pantalla de Estadísticas rediseñada.** Calendario mensual estilo Strava (una "B"
+  azul marca los días con al menos un repaso), tres monos sabios animados en la
+  cabecera y rejilla 2×2 de datos (racha, tarjetas, pendientes, precisión).
+- **Registro de actividad diaria** en `stats.history` para alimentar el calendario.
+### Cambiado
+- Layout responsive sin scroll (verificado en varios tamaños), tipografía en escala
+  áurea, menú inferior más compacto y contenido con ancho máximo para plegables.
+
 ## [1.11] — 2026-05-31
 ### Añadido
 - **Globito (badge) en el icono de la app.** Al llegar una notificación, el icono

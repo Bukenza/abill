@@ -919,8 +919,8 @@ function renderSettings() {
   document.getElementById('notif-enabled').checked = settings.notifEnabled;
   document.getElementById('notif-time').value = settings.notifTime || '08:00';
   updateNotifStatus();
-  const el = document.getElementById('user-id-display');
-  if (el && currentUser) el.textContent = currentUser.uid.substring(0, 8) + '···';
+  const el = document.getElementById('user-email-display');
+  if (el && currentUser) el.textContent = currentUser.email || 'Sesión iniciada';
 }
 
 function saveSettings() {
@@ -935,10 +935,28 @@ function saveSettings() {
 
 function updateNotifStatus() {
   const el = document.getElementById('notif-status');
-  if (!('Notification' in window)) { el.textContent = 'Notificaciones no disponibles en este navegador.'; return; }
-  if (Notification.permission === 'granted') el.textContent = '✅ Notificaciones activadas';
-  else if (Notification.permission === 'denied') el.textContent = '❌ Permiso denegado. Actívalo en Ajustes → Safari.';
-  else el.textContent = 'Pulsa el botón para activar las notificaciones.';
+  const btn = document.getElementById('notif-btn');
+  const setBtn = (text, activated) => {
+    if (!btn) return;
+    btn.textContent = text;
+    btn.disabled = activated;
+    btn.classList.toggle('btn-activated', activated);
+  };
+  if (!('Notification' in window)) {
+    if (el) el.textContent = 'No disponible en este navegador.';
+    setBtn('Activar notificaciones push', false);
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    if (el) el.textContent = 'Activadas ✓ — recibirás tus recordatorios';
+    setBtn('✓ Notificaciones activadas', true);
+  } else if (Notification.permission === 'denied') {
+    if (el) el.textContent = 'Permiso denegado. Actívalo en Ajustes → Safari.';
+    setBtn('Activar notificaciones push', false);
+  } else {
+    if (el) el.textContent = 'Pulsa para recibir recordatorios de repaso';
+    setBtn('Activar notificaciones push', false);
+  }
 }
 
 function confirmReset() {
