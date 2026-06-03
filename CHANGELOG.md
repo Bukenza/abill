@@ -9,6 +9,13 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.15.2] — 2026-06-03
+### Arreglado
+- **CSS de Configuración restaurado.** El merge del rebranding sobreescribió
+  style.css con la versión del branch (v1.12), perdiendo todo el CSS de la
+  pantalla de ajustes añadido en v1.13: `.push-hero`, `.setting-card`,
+  `.toggle`, `.ghost-btn`, `.settings-footer`, `.text-danger-btn`, etc.
+
 ## [1.15.1] — 2026-06-03
 ### Arreglado
 - **Fondos morados eliminados.** Los grises de fondo tenían un componente azul
