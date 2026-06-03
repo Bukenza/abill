@@ -1188,7 +1188,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 10px 4px;
+  padding: 8px 4px 2px;
   background: none;
   border: none;
   color: var(--text3);
