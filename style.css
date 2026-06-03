@@ -866,6 +866,15 @@ html, body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  align-items: center; /* centra el contenido en pantallas anchas (plegables, tablet) */
+}
+
+/* Salvaguarda para pantallas grandes/plegables: el contenido no se estira
+   más allá de un ancho de móvil; en un teléfono normal (≤460px) no cambia nada. */
+.stats-top,
+.stats-middle {
+  width: 100%;
+  max-width: 460px;
 }
 
 /* ── Header: monos + título, centrado y simétrico ── */
