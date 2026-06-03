@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleusercontent.com; frame-src 'self' https://abill-bb5a6.firebaseapp.com; connect-src 'self' https://*.googleapis.com https://fcm.googleapis.com https://*.firebaseapp.com https://*.firebase.com; object-src 'none'; base-uri 'self';">
   <meta name="theme-color" content="#0f0f12">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -472,11 +472,11 @@
         </div>
       </div>
 
-      <!-- Calendario: 45% -->
-      <div id="stats-cal-section"></div>
-
-      <!-- Datos: 40% -->
-      <div class="stats-grid" id="stats-grid"></div>
+      <!-- Middle: calendario + datos, reparte el espacio sobrante -->
+      <div class="stats-middle">
+        <div id="stats-cal-section"></div>
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
     </div>
     <div class="bottom-bar">
       <button class="tab" onclick="showScreen('screen-home')">
