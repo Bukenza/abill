@@ -856,10 +856,11 @@ html, body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: space-evenly;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Monos + título — altura natural, no estira */
+/* Monos + título — altura natural */
 .stats-top {
   flex-shrink: 0;
   display: flex;
@@ -925,10 +926,9 @@ html, body {
   35%, 65% { transform: translateY(-4px) rotate(-5deg); }
 }
 
-/* Calendario — llena el espacio disponible entre header y tarjetas */
+/* Calendario — altura natural */
 #stats-cal-section {
-  flex: 1;
-  min-height: 0;
+  flex-shrink: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -961,10 +961,7 @@ html, body {
 .cal-mv-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: auto;
-  align-content: space-evenly;
-  flex: 1;
-  min-height: 0;
+  grid-auto-rows: 44px;
 }
 
 .cal-mv-cell {
