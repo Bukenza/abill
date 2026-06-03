@@ -9,6 +9,14 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 
 ---
 
+## [1.15] — 2026-06-03
+### Cambiado
+- **Rebranding de colores.** Nueva paleta triádica: `--accent` → azul-teal `#61C1CB`
+  (principal), `--accent2` → amarillo-lima `#c1cb61` (secundario), `--accent3` →
+  rosa-magenta `#cb61c1` (terciario). El fondo de acento pasa a `#0d2e30`. Todos los
+  elementos que usaban el viejo morado (botones, pestañas activas, héroe de notif,
+  avatar Bill, calendario…) adoptan la nueva paleta de forma automática vía variables CSS.
+
 ## [1.14] — 2026-06-03
 ### Añadido
 - **Swipe lateral entre pestañas.** Deslizar el dedo en horizontal cambia entre las
@@ -45,6 +53,7 @@ menor = arreglo pequeño (`v1.9.1`), funcionalidad nueva = `v1.9`, rediseño = `
 ### Cambiado
 - Layout responsive sin scroll (verificado en varios tamaños), tipografía en escala
   áurea, menú inferior más compacto y contenido con ancho máximo para plegables.
+
 
 ## [1.11] — 2026-05-31
 ### Añadido

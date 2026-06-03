@@ -8,9 +8,10 @@
   --text: #f0f0f0;
   --text2: #a0a0b0;
   --text3: #555566;
-  --accent: #7c6fef;
-  --accent2: #a78bfa;
-  --accent-bg: #2d1f4a;
+  --accent: #61C1CB;
+  --accent2: #c1cb61;
+  --accent3: #cb61c1;
+  --accent-bg: #0d2e30;
   --good: #4ade80;
   --good-bg: #1a2d1a;
   --fail: #f87171;
@@ -32,7 +33,6 @@ html, body {
   line-height: 1.5;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  touch-action: manipulation; /* sin doble-toque para zoom ni retardo de 300ms */
 }
 
 /* ── NAVEGACIÓN ENTRE PANTALLAS ──────────────────────────────
@@ -851,65 +851,48 @@ html, body {
 .done-stat-lbl { font-size: 11px; color: var(--text3); }
 
 /* STATS SCREEN */
-/* ── PANTALLA STATS ──────────────────────────────────────────
-   Tres zonas en columna que nunca hacen scroll:
-   · Header (monos + título): fijo arriba, altura natural.
-   · Middle (calendario + tarjetas): flex:1; el espacio sobrante
-     se reparte con space-evenly en huecos iguales que se adaptan
-     a cada dispositivo (más aire en pantallas altas, compacto en
-     las bajas), manteniendo la composición simétrica.
-   · Bottom bar: fijo abajo (position:absolute, global).
-   Tipografía en escala áurea: 11 → 14 → 18 → 28 (cada paso ≈ ×φ,
-   con 14 como media geométrica de 11 y 18). Ritmo de espacios
-   4 → 6 → 10 → 16 (también ×φ). */
+/* ── PANTALLA STATS — layout proporcional sin scroll ── */
 .screen-content--stats {
-  padding: 0 0 calc(58px + env(safe-area-inset-bottom, 0px));
+  padding: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center; /* centra el contenido en pantallas anchas (plegables, tablet) */
 }
 
-/* Salvaguarda para pantallas grandes/plegables: el contenido no se estira
-   más allá de un ancho de móvil; en un teléfono normal (≤460px) no cambia nada. */
-.stats-top,
-.stats-middle {
-  width: 100%;
-  max-width: 460px;
-}
-
-/* ── Header: monos + título, centrado y simétrico ── */
+/* 15% — monos + título */
 .stats-top {
-  flex-shrink: 0;
+  flex: 3;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: 8px;
 }
 
 .monkeys-banner {
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 6px 0 0;
+  overflow: hidden;
 }
 
 .monkeys-svg {
-  height: 56px;
-  width: 151px; /* 56 × (270/100) — mantiene el aspect ratio del viewBox */
+  width: auto;
+  max-height: 72px;
   display: block;
 }
 
 .nav-header--stats {
-  display: block;
-  padding: 6px 18px 0;
-  text-align: center;
+  padding: 0 18px 4px;
+  flex-shrink: 0;
 }
-.nav-header--stats .nav-title { font-size: 18px; }
 
 .nav-banner-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text3);
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   font-family: var(--font-mono);
 }
 
@@ -947,22 +930,14 @@ html, body {
   35%, 65% { transform: translateY(-4px) rotate(-5deg); }
 }
 
-/* ── Middle: reparte el espacio sobrante de forma simétrica ── */
-.stats-middle {
-  flex: 1;
+/* 45% — calendario */
+#stats-cal-section {
+  flex: 9;
   min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
-  padding: 0 18px;
-}
-
-/* ── Calendario ── */
-#stats-cal-section {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
+  padding: 6px 18px 4px;
 }
 
 .cal-mv-title {
@@ -970,19 +945,20 @@ html, body {
   font-weight: 600;
   color: var(--text);
   font-family: var(--font);
-  text-align: center;
-  margin-bottom: 6px;
+  flex-shrink: 0;
+  margin-bottom: 4px;
 }
 .cal-mv-year { color: var(--text3); font-weight: 400; }
 
 .cal-mv-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  margin-bottom: 4px;
+  flex-shrink: 0;
+  margin-bottom: 2px;
 }
 .cal-mv-wlbl {
   text-align: center;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--text3);
   font-family: var(--font-mono);
 }
@@ -990,7 +966,9 @@ html, body {
 .cal-mv-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 34px;
+  grid-auto-rows: 1fr;
+  flex: 1;
+  min-height: 0;
 }
 
 .cal-mv-cell {
@@ -1000,8 +978,8 @@ html, body {
 }
 
 .cal-mv-circle {
-  width: 30px;
-  height: 30px;
+  aspect-ratio: 1;
+  width: min(74%, 38px);
   border-radius: 50%;
   border: 1.5px solid var(--bg3);
   display: flex;
@@ -1016,7 +994,7 @@ html, body {
 .cal-mv-overflow .cal-mv-circle    { border-color: transparent; }
 
 .cal-mv-num {
-  font-size: 14px;
+  font-size: 15px;
   font-family: 'Open Sans', sans-serif;
   font-weight: 400;
   color: var(--text2);
@@ -1027,21 +1005,50 @@ html, body {
 .cal-mv-overflow .cal-mv-num { color: var(--text3); opacity: 0.3; }
 
 .cal-mv-ltr {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--accent);
   font-family: 'Open Sans', sans-serif;
   line-height: 1;
 }
 
-/* ── Tarjetas de datos: 2×2 simétrico, compactas ── */
+/* 40% — tarjetas de datos */
 .stats-grid {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 0 18px;
 }
 
-#screen-stats .stats-grid { flex-shrink: 0; }
+#screen-stats .stats-grid {
+  flex: 8;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+#screen-stats .stats-row-2 {
+  flex: 1;
+  min-height: 0;
+}
+
+#screen-stats .stats-row-2 .stats-big-card {
+  height: 100%;
+}
+
+.stats-big-card {
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stats-big-title { font-size: 12px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.stats-big-val { font-size: 44px; font-weight: 600; color: var(--text); font-family: var(--font-mono); }
+.stats-big-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
 
 .stats-row-2 {
   display: grid;
@@ -1049,88 +1056,46 @@ html, body {
   gap: 8px;
 }
 
-.stats-big-card {
-  background: var(--bg2);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 11px 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.stats-big-title { font-size: 10.5px; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
-.stats-big-val { font-size: 28px; font-weight: 600; color: var(--text); font-family: var(--font-mono); line-height: 1; }
-.stats-big-sub { font-size: 10.5px; color: var(--text3); margin-top: 3px; }
-
 /* SETTINGS */
-/* ── PANTALLA CONFIGURACIÓN — sin scroll, push lo primero ── */
-.screen-content--settings {
-  padding: 0 18px calc(58px + env(safe-area-inset-bottom, 0px));
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.settings-inner {
-  width: 100%;
-  max-width: 460px;
-  margin: 0 auto;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.settings-section {
+  margin-bottom: 28px;
 }
 
-.nav-header--settings { padding: 10px 0 0; }
-
-/* Hero: activar notificaciones push (lo más importante) */
-.push-hero {
-  background: var(--accent-bg);
-  border: 0.5px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 18px 16px 16px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-family: var(--font-mono);
+  margin-bottom: 12px;
 }
-.push-hero-icon { color: var(--accent2); line-height: 0; }
-.push-hero-title { font-size: 17px; font-weight: 600; color: var(--text); }
-.push-hero-sub { font-size: 12px; color: var(--text2); line-height: 1.4; min-height: 17px; }
-.push-hero .btn-primary.full-btn { margin-top: 8px; }
-.push-hero .btn-primary.btn-activated {
-  background: var(--good-bg);
-  color: var(--good);
-  border: 0.5px solid var(--good);
-}
-.push-hero .btn-primary.btn-activated:active { transform: none; opacity: 1; }
 
-/* Tarjetas de ajuste */
-.setting-card {
+.setting-row {
   background: var(--bg2);
   border: 0.5px solid var(--border);
   border-radius: var(--radius);
   padding: 14px 16px;
-}
-.setting-card-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  margin-bottom: 8px;
 }
 
-.setting-info { flex: 1; min-width: 0; }
+.setting-info { flex: 1; }
 .setting-name { font-size: 14px; color: var(--text); margin-bottom: 2px; }
-.setting-desc { font-size: 12px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setting-desc { font-size: 12px; color: var(--text3); }
 
-.setting-note-inline {
-  font-size: 11.5px;
+.setting-note {
+  font-size: 12px;
   color: var(--text3);
-  line-height: 1.5;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 0.5px solid var(--border);
+  padding: 10px 14px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  line-height: 1.6;
+  margin-top: 4px;
 }
 
 /* TOGGLE */
@@ -1172,38 +1137,38 @@ html, body {
   cursor: pointer;
 }
 
-.ghost-btn {
-  background: none;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text2);
-  font-size: 13px;
-  font-family: var(--font);
-  padding: 9px 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.ghost-btn:active { background: var(--bg3); }
-
-.settings-footer {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding-top: 8px;
-}
-.text-danger-btn {
-  background: none;
-  border: none;
+.setting-danger-btn {
+  width: 100%;
+  padding: 13px;
+  background: var(--fail-bg);
+  border: 0.5px solid var(--fail);
+  border-radius: var(--radius);
   color: var(--fail);
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--font);
   cursor: pointer;
-  padding: 6px 10px;
 }
-.about-desc { font-size: 12px; color: var(--text3); }
+
+.about-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.about-name { font-size: 16px; font-weight: 600; color: var(--text); font-family: var(--font-mono); }
+.about-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+.notif-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 10px;
+  min-height: 18px;
+}
 
 /* BOTTOM BAR */
 .bottom-bar {
@@ -1226,7 +1191,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 4px 2px;
+  padding: 10px 4px;
   background: none;
   border: none;
   color: var(--text3);
