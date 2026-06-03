@@ -508,6 +508,46 @@ function showScreen(id) {
   currentScreen = id;
 }
 
+// ── SWIPE LATERAL ENTRE PESTAÑAS ──────────────────────
+// Deslizar el dedo en horizontal cambia entre las 4 pantallas principales de
+// la barra inferior. Las pantallas "profundas" (nueva tarjeta, repaso, etc.)
+// quedan fuera a propósito: se entra y se sale de ellas con botones.
+const TAB_SCREENS = ['screen-home', 'screen-decks', 'screen-stats', 'screen-settings'];
+
+let swipeX = 0, swipeY = 0, swipeValid = false;
+
+document.addEventListener('touchstart', e => {
+  // Solo gestos de un dedo y que NO empiecen sobre un campo editable
+  if (e.touches.length !== 1 || e.target.closest('input, textarea, select')) {
+    swipeValid = false;
+    return;
+  }
+  swipeX = e.touches[0].clientX;
+  swipeY = e.touches[0].clientY;
+  swipeValid = true;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (!swipeValid) return;
+  swipeValid = false;
+  const dx = e.changedTouches[0].clientX - swipeX;
+  const dy = e.changedTouches[0].clientY - swipeY;
+  // Horizontal claro: recorrido > 60px y al menos el doble que el vertical
+  // (así no se dispara al hacer scroll vertical).
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return;
+  const i = TAB_SCREENS.indexOf(currentScreen);
+  if (i === -1) return; // solo en las pestañas principales
+  const next = dx < 0 ? i + 1 : i - 1; // arrastrar a la izquierda = avanzar
+  if (next >= 0 && next < TAB_SCREENS.length) showScreen(TAB_SCREENS[next]);
+}, { passive: true });
+
+// ── DESACTIVAR ZOOM (pellizco) ────────────────────────
+// Refuerza el viewport (maximum-scale=1, user-scalable=no): Safari iOS a veces
+// ignora el meta, así que bloqueamos también sus gestos de pellizco.
+['gesturestart', 'gesturechange', 'gestureend'].forEach(ev =>
+  document.addEventListener(ev, e => e.preventDefault())
+);
+
 // ── HOME ──────────────────────────────────────────────
 function renderHome() {
   const h = new Date().getHours();
@@ -919,8 +959,8 @@ function renderSettings() {
   document.getElementById('notif-enabled').checked = settings.notifEnabled;
   document.getElementById('notif-time').value = settings.notifTime || '08:00';
   updateNotifStatus();
-  const el = document.getElementById('user-id-display');
-  if (el && currentUser) el.textContent = currentUser.uid.substring(0, 8) + '···';
+  const el = document.getElementById('user-email-display');
+  if (el && currentUser) el.textContent = currentUser.email || 'Sesión iniciada';
 }
 
 function saveSettings() {
@@ -935,10 +975,28 @@ function saveSettings() {
 
 function updateNotifStatus() {
   const el = document.getElementById('notif-status');
-  if (!('Notification' in window)) { el.textContent = 'Notificaciones no disponibles en este navegador.'; return; }
-  if (Notification.permission === 'granted') el.textContent = '✅ Notificaciones activadas';
-  else if (Notification.permission === 'denied') el.textContent = '❌ Permiso denegado. Actívalo en Ajustes → Safari.';
-  else el.textContent = 'Pulsa el botón para activar las notificaciones.';
+  const btn = document.getElementById('notif-btn');
+  const setBtn = (text, activated) => {
+    if (!btn) return;
+    btn.textContent = text;
+    btn.disabled = activated;
+    btn.classList.toggle('btn-activated', activated);
+  };
+  if (!('Notification' in window)) {
+    if (el) el.textContent = 'No disponible en este navegador.';
+    setBtn('Activar notificaciones push', false);
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    if (el) el.textContent = 'Activadas ✓ — recibirás tus recordatorios';
+    setBtn('✓ Notificaciones activadas', true);
+  } else if (Notification.permission === 'denied') {
+    if (el) el.textContent = 'Permiso denegado. Actívalo en Ajustes → Safari.';
+    setBtn('Activar notificaciones push', false);
+  } else {
+    if (el) el.textContent = 'Pulsa para recibir recordatorios de repaso';
+    setBtn('Activar notificaciones push', false);
+  }
 }
 
 function confirmReset() {
